@@ -160,13 +160,28 @@ use it.
 ### Ports (third-party desktop software)
 
 The cross toolchain and the ported libraries live outside the OS build,
-in a sibling directory `../minix-ports/`:
+in a separate repository:
+[**edrich/minix-ports**](https://github.com/edrich/minix-ports). It
+contains:
 - `build-toolchain.sh`
 - `build-port.sh <name>`
 - per-port recipes and MINIX patches
-- gate scripts such as `test-drm.sh` and `test-wayland.sh`
+- gate scripts such as `test-drm.sh`, `test-wayland.sh`, `test-hyprland.sh`
+  and `test-foot.sh`
 
-Ports install under `/usr/pkg` in the guest. See `minix-ports/README.md`.
+Check it out next to this repository, which must be in a directory named
+`minix`; the ports scripts find the OS tree at `../minix` and the build
+output at `../obj.docker.i386`:
+
+```sh
+git clone git@github.com:edrich/minix.git
+git clone https://github.com/edrich/minix-ports.git
+# -> ./minix  ./minix-ports  (and later ./obj.docker.i386)
+```
+
+Port changes are committed to minix-ports, not here. Ports install under
+`/usr/pkg` in the guest. See the
+[minix-ports README](https://github.com/edrich/minix-ports#readme).
 
 ---
 
