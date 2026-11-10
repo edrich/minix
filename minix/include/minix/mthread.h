@@ -1,8 +1,6 @@
 #ifndef _MTHREAD_H
 #define _MTHREAD_H
 
-#include <minix/config.h>	/* MUST be first */
-#include <minix/const.h>
 #include <sys/types.h>
 #include <stdio.h>
 #include <ucontext.h>
@@ -10,12 +8,20 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <sys/signal.h>
+#include <time.h>
 
 typedef int mthread_thread_t;
 typedef int mthread_once_t;
 typedef int mthread_key_t;
 typedef void * mthread_condattr_t;
-typedef void * mthread_mutexattr_t;
+typedef void * mthread_mutexattr_t;	/* holds the mutex type (below) */
+
+/* Mutex types (values as in glibc).  NORMAL and ERRORCHECK both report
+ * EDEADLK on relocking by the owner (there is no real deadlock with
+ * cooperative threads); RECURSIVE counts. */
+#define MTHREAD_MUTEX_NORMAL		0
+#define MTHREAD_MUTEX_RECURSIVE		1
+#define MTHREAD_MUTEX_ERRORCHECK	2
 
 struct __mthread_tcb;
 typedef struct {
@@ -26,6 +32,8 @@ typedef struct {
 struct __mthread_mutex {
   mthread_queue_t mm_queue;	/* Queue of threads blocked on this mutex */
   mthread_thread_t mm_owner;	/* Thread ID that currently owns mutex */
+  int mm_type;			/* MTHREAD_MUTEX_NORMAL etc. */
+  unsigned int mm_count;	/* extra locks held (recursive mutexes) */
 #ifdef MTHREAD_STRICT
   struct __mthread_mutex *mm_prev;
   struct __mthread_mutex *mm_next;
@@ -36,6 +44,7 @@ typedef struct __mthread_mutex *mthread_mutex_t;
 
 struct __mthread_cond {
   struct __mthread_mutex *mc_mutex;	/* Associate mutex with condition */
+  clockid_t mc_clock;			/* Clock of timed waits */
 #ifdef MTHREAD_STRICT
   struct __mthread_cond *mc_prev;
   struct __mthread_cond *mc_next;
@@ -100,6 +109,8 @@ int mthread_attr_setstacksize(mthread_attr_t *tattr, size_t stacksize);
 int mthread_cond_broadcast(mthread_cond_t *cond);
 int mthread_cond_destroy(mthread_cond_t *cond);
 int mthread_cond_init(mthread_cond_t *cond, mthread_condattr_t *cattr);
+int mthread_cond_timedwait(mthread_cond_t *cond, mthread_mutex_t *mutex,
+	const struct timespec *abstime);
 int mthread_cond_signal(mthread_cond_t *cond);
 int mthread_cond_wait(mthread_cond_t *cond, mthread_mutex_t *mutex);
 
@@ -135,6 +146,8 @@ int mthread_event_fire_all(mthread_event_t *event);
 int mthread_rwlock_destroy(mthread_rwlock_t *rwlock);
 int mthread_rwlock_init(mthread_rwlock_t *rwlock);
 int mthread_rwlock_rdlock(mthread_rwlock_t *rwlock);
+int mthread_rwlock_tryrdlock(mthread_rwlock_t *rwlock);
+int mthread_rwlock_trywrlock(mthread_rwlock_t *rwlock);
 int mthread_rwlock_wrlock(mthread_rwlock_t *rwlock);
 int mthread_rwlock_unlock(mthread_rwlock_t *rwlock);
 
@@ -163,8 +176,12 @@ typedef void *pthread_rwlockattr_t;
 #define PTHREAD_COND_INITIALIZER ((pthread_cond_t) -1)
 
 __BEGIN_DECLS
+/* POSIX prototypes (const attribute arguments etc.): C++ code such as
+ * libstdc++'s gthreads passes const pointers.  The pthread_* names that are
+ * weak aliases of mthread_* functions differ from them only in qualifiers.
+ */
 /* allocate.c */
-int pthread_create(pthread_t *thread, pthread_attr_t *tattr, void
+int pthread_create(pthread_t *thread, const pthread_attr_t *tattr, void
 	*(*proc)(void *), void *arg);
 int pthread_detach(pthread_t thread);
 int pthread_equal(pthread_t l, pthread_t r);
@@ -175,11 +192,12 @@ pthread_t pthread_self(void);
 
 /* attribute.c */
 int pthread_attr_destroy(pthread_attr_t *tattr);
-int pthread_attr_getdetachstate(pthread_attr_t *tattr, int
+int pthread_attr_getdetachstate(const pthread_attr_t *tattr, int
 	*detachstate);
-int pthread_attr_getstack(pthread_attr_t *tattr, void **stackaddr,
+int pthread_attr_getstack(const pthread_attr_t *tattr, void **stackaddr,
 	size_t *stacksize);
-int pthread_attr_getstacksize(pthread_attr_t *tattr, size_t *stacksize);
+int pthread_attr_getstacksize(const pthread_attr_t *tattr,
+	size_t *stacksize);
 int pthread_attr_init(pthread_attr_t *tattr);
 int pthread_attr_setdetachstate(pthread_attr_t *tattr, int detachstate);
 int pthread_attr_setstack(pthread_attr_t *tattr, void *stackaddr, size_t
@@ -189,19 +207,24 @@ int pthread_attr_setstacksize(pthread_attr_t *tattr, size_t stacksize);
 /* condition.c */
 int pthread_cond_broadcast(pthread_cond_t *cond);
 int pthread_cond_destroy(pthread_cond_t *cond);
-int pthread_cond_init(pthread_cond_t *cond, pthread_condattr_t *cattr);
+int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *cattr);
 int pthread_cond_signal(pthread_cond_t *cond);
 int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
+int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
+	const struct timespec *abstime);
+int pthread_condattr_setclock(pthread_condattr_t *attr, clockid_t clock_id);
+int pthread_condattr_getclock(const pthread_condattr_t *attr,
+	clockid_t *clock_id);
 
 /* key.c */
 int pthread_key_create(pthread_key_t *key, void (*destructor)(void *));
 int pthread_key_delete(pthread_key_t key);
 void *pthread_getspecific(pthread_key_t key);
-int pthread_setspecific(pthread_key_t key, void *value);
+int pthread_setspecific(pthread_key_t key, const void *value);
 
 /* mutex.c */
 int pthread_mutex_destroy(pthread_mutex_t *mutex);
-int pthread_mutex_init(pthread_mutex_t *mutex, pthread_mutexattr_t
+int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t
 	*mattr);
 int pthread_mutex_lock(pthread_mutex_t *mutex);
 int pthread_mutex_trylock(pthread_mutex_t *mutex);
@@ -217,8 +240,10 @@ int pthread_event_fire_all(pthread_event_t *event);
 /* rwlock.c */
 int pthread_rwlock_destroy(pthread_rwlock_t *rwlock);
 int pthread_rwlock_init(pthread_rwlock_t *rwlock,
-	pthread_rwlockattr_t *UNUSED(attr));
+	const pthread_rwlockattr_t *attr);
 int pthread_rwlock_rdlock(pthread_rwlock_t *rwlock);
+int pthread_rwlock_tryrdlock(pthread_rwlock_t *rwlock);
+int pthread_rwlock_trywrlock(pthread_rwlock_t *rwlock);
 int pthread_rwlock_wrlock(pthread_rwlock_t *rwlock);
 int pthread_rwlock_unlock(pthread_rwlock_t *rwlock);
 
@@ -227,12 +252,15 @@ int pthread_yield(void);
 int sched_yield(void);
 void pthread_yield_all(void);
 
-/* LSC: FIXME: Maybe we should really do something with those... */
-#define pthread_mutexattr_init(u) (0)
-#define pthread_mutexattr_destroy(u) (0)
-
-#define PTHREAD_MUTEX_RECURSIVE 0
-#define pthread_mutexattr_settype(x, y) (EINVAL)
+/* Mutex attributes: only the type is supported. */
+#define PTHREAD_MUTEX_NORMAL		MTHREAD_MUTEX_NORMAL
+#define PTHREAD_MUTEX_RECURSIVE		MTHREAD_MUTEX_RECURSIVE
+#define PTHREAD_MUTEX_ERRORCHECK	MTHREAD_MUTEX_ERRORCHECK
+#define PTHREAD_MUTEX_DEFAULT		MTHREAD_MUTEX_NORMAL
+int pthread_mutexattr_init(pthread_mutexattr_t *mattr);
+int pthread_mutexattr_destroy(pthread_mutexattr_t *mattr);
+int pthread_mutexattr_settype(pthread_mutexattr_t *mattr, int type);
+int pthread_mutexattr_gettype(const pthread_mutexattr_t *mattr, int *type);
 __END_DECLS
 
 #endif /* defined(_MTHREADIFY_PTHREADS) */

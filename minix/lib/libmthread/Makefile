@@ -7,6 +7,7 @@ LIB=	mthread
 SRCS=	\
 	allocate.c \
 	attribute.c \
+	c11threads.c \
 	condition.c \
 	event.c \
 	key.c \
@@ -16,6 +17,8 @@ SRCS=	\
 	queue.c \
 	rwlock.c \
 	scheduler.c \
+	sem.c \
+	timedwait.c \
 
 WARNS?=	4
 

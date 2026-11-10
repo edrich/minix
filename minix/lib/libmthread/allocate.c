@@ -23,7 +23,16 @@ static void mthread_trampoline(void);
 static int initialized = 0;
 #define MTHREAD_GUARDSIZE 	(1 << PGSHIFT) 	/* 1 page */
 
-static struct __mthread_attr default_attr = {	MTHREAD_STACK_MIN,
+/* Stack size of threads created without an explicit one (no attributes,
+ * or attributes without pthread_attr_setstacksize()).  This used to be
+ * MTHREAD_STACK_MIN (8 KB): ported software assumes the usual defaults
+ * (glibc 8 MB, musl 128 KB) and overflowed it in its first deep call
+ * (FreeType/pixman glyph rendering in foot's worker threads).  Stacks are
+ * on-demand anonymous memory: only the pages used cost RAM.
+ */
+#define MTHREAD_STACK_DEFAULT	(1024 * 1024)
+
+static struct __mthread_attr default_attr = {	MTHREAD_STACK_DEFAULT,
 						NULL,
 						MTHREAD_CREATE_JOINABLE,
 						NULL, NULL };
@@ -391,10 +400,10 @@ void *arg;
   stackaddr = tcb->m_attr.ma_stackaddr;
 
   if (stacksize == (size_t) 0) {
-	/* User provided too small a stack size. Forget about that stack and
-	 * allocate a new one ourselves.
+	/* No stack size given (default attributes). Forget about that stack
+	 * and allocate a new one ourselves.
 	 */
-	stacksize = (size_t) MTHREAD_STACK_MIN;
+	stacksize = (size_t) MTHREAD_STACK_DEFAULT;
 	tcb->m_attr.ma_stackaddr = stackaddr = NULL;
   }
 
@@ -469,6 +478,8 @@ mthread_thread_t thread;
   rt->m_arg = NULL;
   rt->m_result = NULL;
   rt->m_cond = NULL;
+  rt->m_timedwait = 0;
+  rt->m_signaled = 0;
   if (rt->m_attr.ma_stackaddr == NULL) { /* We allocated stack space */
 	if (rt->m_context.uc_stack.ss_sp) {
 		stacksize = rt->m_context.uc_stack.ss_size;
@@ -539,12 +550,10 @@ static void mthread_trampoline(void)
   mthread_exit(r); 
 }
 
-/* pthread compatibility layer. */
-__weak_alias(pthread_create, mthread_create)
-__weak_alias(pthread_detach, mthread_detach)
-__weak_alias(pthread_equal, mthread_equal)
+/* pthread compatibility layer.  pthread_create, _detach, _equal, _join and
+ * _self are wrappers in pthread_compat.c (pthread_t values are offset from
+ * mthread thread IDs).
+ */
 __weak_alias(pthread_exit, mthread_exit)
-__weak_alias(pthread_join, mthread_join)
 __weak_alias(pthread_once, mthread_once)
-__weak_alias(pthread_self, mthread_self)
 
