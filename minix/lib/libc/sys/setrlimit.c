@@ -4,11 +4,23 @@
 #include <errno.h>
 #include <limits.h>
 #include <sys/resource.h>
+#include <string.h>
 #include <unistd.h>
+#include <lib.h>
 
-/* Simple stub for now. */
+/* Simple stub for now, except for RLIMIT_CORE, which PM keeps. */
 int setrlimit(int resource, const struct rlimit *rlp)
 {
+	message m;
+
+	if (resource == RLIMIT_CORE) {
+		memset(&m, 0, sizeof(m));
+		m.m_lc_pm_rlimit.set = 1;
+		m.m_lc_pm_rlimit.resource = resource;
+		m.m_lc_pm_rlimit.cur = rlp->rlim_cur;
+		m.m_lc_pm_rlimit.max = rlp->rlim_max;
+		return _syscall(PM_PROC_NR, PM_RLIMIT, &m);
+	}
 
 	switch (resource)
 	{

@@ -515,6 +515,17 @@ typedef struct {
 } mess_lc_pm_rusage;
 _ASSERT_MSG_SIZE(mess_lc_pm_rusage);
 
+/* getrlimit(2)/setrlimit(2) for the limits PM keeps; also the reply. */
+typedef struct {
+	int set;		/* 0: getrlimit, 1: setrlimit */
+	int resource;
+	uint64_t cur;
+	uint64_t max;
+
+	uint8_t padding[32];
+} mess_lc_pm_rlimit;
+_ASSERT_MSG_SIZE(mess_lc_pm_rlimit);
+
 typedef struct {
 	gid_t gid;
 
@@ -2463,6 +2474,7 @@ typedef struct noxfer_message {
 		mess_lc_pm_priority	m_lc_pm_priority;
 		mess_lc_pm_ptrace	m_lc_pm_ptrace;
 		mess_lc_pm_reboot	m_lc_pm_reboot;
+		mess_lc_pm_rlimit	m_lc_pm_rlimit;
 		mess_lc_pm_rusage	m_lc_pm_rusage;
 		mess_lc_pm_setgid	m_lc_pm_setgid;
 		mess_lc_pm_setuid	m_lc_pm_setuid;

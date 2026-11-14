@@ -164,6 +164,13 @@ class QemuMinix:
             "-drive", f"file={a.image},format=raw,if=ide,index=0,media=disk"
                       + ("" if a.persist else ",snapshot=on"),
         ] + extra
+        if a.net:
+            # user-mode (slirp) network: guest 10.0.2.15, gateway 10.0.2.2,
+            # DNS 10.0.2.3.  The guest autostarts the e1000 driver (PCI
+            # detection in /usr/etc/rc); the interface still needs
+            # configuring, e.g. `dhcpcd -qM -4 em0` (see netconf(8)).
+            cmd += ["-netdev", "user,id=net0",
+                    "-device", "e1000,netdev=net0"]
         accel = "kvm" if os.access("/dev/kvm", os.R_OK | os.W_OK) else "tcg"
         cmd += ["-accel", accel]
 
@@ -509,6 +516,8 @@ def main():
                          "guest prints HARNESS:INPUT:NAME")
     ap.add_argument("--raw", action="store_true",
                     help="run --cmd directly on the login shell; no test disk")
+    ap.add_argument("--net", action="store_true",
+                    help="attach an e1000 NIC on QEMU user-mode networking")
     ap.add_argument("--persist", action="store_true",
                     help="write guest changes to the image (default: snapshot)")
     args = ap.parse_args()

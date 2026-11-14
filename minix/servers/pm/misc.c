@@ -8,6 +8,7 @@
  *   do_getsetpriority: get/set process priority
  *   do_svrctl: process manager control
  *   do_getrusage: obtain process resource usage information
+ *   do_rlimit: get or set the resource limits kept by PM (RLIMIT_CORE)
  */
 
 #include "pm.h"
@@ -444,4 +445,43 @@ do_getrusage(void)
 	/* Finally copy the structure to the caller. */
 	return sys_datacopy(SELF, (vir_bytes)&r_usage, who_e,
 	    m_in.m_lc_pm_rusage.addr, (vir_bytes)sizeof(r_usage));
+}
+
+/*===========================================================================*
+ *				do_rlimit				     *
+ *===========================================================================*/
+int
+do_rlimit(void)
+{
+	/*
+	 * getrlimit(2) and setrlimit(2) for the limits PM enforces - only
+	 * RLIMIT_CORE so far: a soft limit of zero suppresses core dumps (see
+	 * exit_proc).  The limits are inherited by fork and kept across exec,
+	 * as they are part of the process slot.
+	 */
+	struct mproc *rmp = mp;
+	uint64_t cur, max;
+
+	if (m_in.m_lc_pm_rlimit.resource != RLIMIT_CORE)
+		return EINVAL;
+
+	if (m_in.m_lc_pm_rlimit.set) {
+		cur = m_in.m_lc_pm_rlimit.cur;
+		max = m_in.m_lc_pm_rlimit.max;
+
+		if (cur > max)
+			return EINVAL;
+		if (max > rmp->mp_corelim_max && rmp->mp_effuid != SUPER_USER)
+			return EPERM;
+
+		rmp->mp_corelim_cur = cur;
+		rmp->mp_corelim_max = max;
+	}
+
+	memset(&rmp->mp_reply, 0, sizeof(rmp->mp_reply));
+	rmp->mp_reply.m_lc_pm_rlimit.resource = RLIMIT_CORE;
+	rmp->mp_reply.m_lc_pm_rlimit.cur = rmp->mp_corelim_cur;
+	rmp->mp_reply.m_lc_pm_rlimit.max = rmp->mp_corelim_max;
+
+	return OK;
 }

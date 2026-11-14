@@ -4,7 +4,8 @@
  * registration errors, level-triggered readiness with user data, MOD/DEL,
  * EPOLLONESHOT, hangup, timeouts, EINTR, closed members dropping out,
  * eventfd/timerfd/signalfd members, maxevents fairness, fork inheritance,
- * CLOEXEC and reuse of a closed epoll fd number.
+ * CLOEXEC and reuse of a closed epoll fd number, epoll_pwait() with a
+ * signal that is already pending when it is called.
  */
 
 #include <sys/types.h>
@@ -208,6 +209,77 @@ test_eintr(void)
 	alarm(1);
 	if (epoll_wait(ep, out, 1, 5000) != -1 || errno != EINTR) e(3);
 	signal(SIGALRM, SIG_DFL);
+	close(p[0]);
+	close(p[1]);
+	close(ep);
+}
+
+static volatile sig_atomic_t usr1_seen;
+
+static void
+on_usr1(int sig)
+{
+	(void)sig;
+	usr1_seen++;
+}
+
+/*
+ * epoll_pwait() and a signal that is blocked and already pending: the mask
+ * given unblocks it, so the handler has to run and the call has to return
+ * EINTR at once instead of sleeping (the "block signals outside the wait"
+ * event loop idiom).  A pending signal that the mask keeps blocked must not
+ * disturb the wait, and the old mask is back afterwards.
+ */
+static void
+test_pwait_pending(void)
+{
+	struct epoll_event out[1];
+	struct sigaction sa;
+	struct timeval t0;
+	sigset_t blk, old, none, cur;
+	int ep, p[2];
+
+	subtest = 8;
+	if ((ep = epoll_create1(0)) < 0 || pipe(p) != 0) { e(1); return; }
+	if (add(ep, p[0], EPOLLIN, 7) != 0) e(2);
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = on_usr1;
+	sigaction(SIGUSR1, &sa, NULL);
+	sigemptyset(&none);
+	sigemptyset(&blk);
+	sigaddset(&blk, SIGUSR1);
+	if (sigprocmask(SIG_BLOCK, &blk, &old) != 0) e(3);
+
+	/* pending and unblocked by the mask: handler, EINTR, no sleep */
+	usr1_seen = 0;
+	kill(getpid(), SIGUSR1);
+	if (usr1_seen != 0) e(4);
+	gettimeofday(&t0, NULL);
+	errno = 0;
+	if (epoll_pwait(ep, out, 1, 3000, &none) != -1 || errno != EINTR) e(5);
+	if (usr1_seen != 1) e(6);
+	if (ms_since(&t0) > 1500) e(7);
+	if (sigprocmask(SIG_BLOCK, NULL, &cur) != 0 ||
+	    sigismember(&cur, SIGUSR1) != 1) e(8);
+
+	/* nothing pending any more: a plain timeout */
+	if (epoll_pwait(ep, out, 1, 100, &none) != 0) e(9);
+	if (usr1_seen != 1) e(10);
+
+	/* pending but still blocked by the mask: the wait is not disturbed */
+	kill(getpid(), SIGUSR1);
+	if (write(p[1], "x", 1) != 1) e(11);
+	if (epoll_pwait(ep, out, 1, 3000, &blk) != 1 || out[0].data.u64 != 7)
+		e(12);
+	if (usr1_seen != 1) e(13);
+	if (epoll_pwait(ep, out, 1, 3000, NULL) != 1) e(14);	/* no mask */
+	if (usr1_seen != 1) e(15);
+
+	/* ... and it is delivered when the caller unblocks it */
+	if (sigprocmask(SIG_SETMASK, &old, NULL) != 0) e(16);
+	if (usr1_seen != 2) e(17);
+
+	signal(SIGUSR1, SIG_DFL);
 	close(p[0]);
 	close(p[1]);
 	close(ep);
@@ -437,6 +509,7 @@ main(int argc, char **argv)
 	test_socket_hup();
 	test_fairness_fork();
 	test_nested();
+	test_pwait_pending();
 
 	quit();
 	return 0;

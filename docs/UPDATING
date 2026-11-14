@@ -1,3 +1,28 @@
+20261114:
+	libc: write(2) and read(2) on an eventfd follow Linux (a write adds
+	to the counter; it used to be lost unless eventfd_write() was
+	used), and epoll_pwait() returns EINTR when a signal that its mask
+	unblocks is already pending.  Dynamically linked programs get both
+	with the new libc.so; statically linked ones need a relink.
+	Rebuild world.
+
+20261114:
+	libc gains getpgid(2) (it was declared but missing; PM's getsid
+	call, as process group and session are one id on MINIX).  Programs
+	built against the new libc that use it need the new libc.so at
+	run time.  Rebuild world.
+
+20261114:
+	PM keeps the core file size limit: getrlimit()/setrlimit() of
+	RLIMIT_CORE are real (new PM call PM_RLIMIT; the other resources
+	are still stubs), the limit is inherited by fork and kept across
+	exec, and a process whose soft limit is 0 leaves no core file -
+	"ulimit -c 0" works.  Limits other than 0 do not truncate the
+	dump.  PM and libc have to be updated together: a new libc on an
+	old PM gets ENOSYS from get/setrlimit(RLIMIT_CORE) (sh's ulimit -c
+	then fails); old binaries on the new PM behave as before.  Rebuild
+	world and install a new boot image (make hdboot).
+
 20261110:
 	/etc/profile no longer exports LD_LIBRARY_PATH (NetBSD does not
 	either).  The dynamic linker searches LD_LIBRARY_PATH before a

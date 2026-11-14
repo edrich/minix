@@ -291,6 +291,12 @@ exit_proc(
   if (dump_core && rmp->mp_realuid != rmp->mp_effuid)
 	dump_core = FALSE;
 
+  /* setrlimit(RLIMIT_CORE, 0), "ulimit -c 0": no core file.  Other limits
+   * do not truncate the dump.
+   */
+  if (dump_core && rmp->mp_corelim_cur == 0)
+	dump_core = FALSE;
+
   /* System processes are destroyed before informing VFS, meaning that VFS can
    * not get their CPU state, so we can't generate a coredump for them either.
    */

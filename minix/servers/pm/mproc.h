@@ -79,6 +79,10 @@ EXTERN struct mproc {
 
   char mp_name[PROC_NAME_LEN];	/* process name */
 
+  /* RLIMIT_CORE (soft, hard); a soft limit of 0 disables core dumps. */
+  uint64_t mp_corelim_cur;
+  uint64_t mp_corelim_max;
+
   int mp_magic;			/* sanity check, MP_MAGIC */
 } mproc[NR_PROCS];
 

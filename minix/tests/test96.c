@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <sys/eventfd.h>
 #include <sys/signalfd.h>
+#include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/timerfd.h>
 #include <sys/wait.h>
@@ -48,6 +49,103 @@ ms_now(void)
 
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	return (uint64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+}
+
+/*
+ * 6. eventfd through plain read(2)/write(2), as Linux programs use it: a
+ * write of 8 bytes adds to the counter (and makes the fd readable), a read
+ * returns the counter and resets it, shorter writes are EINVAL, any number
+ * of writes fits, and a descriptor number that was an eventfd and now is
+ * something else is written as that something else.
+ */
+static void
+test_eventfd_rw(void)
+{
+	uint64_t u;
+	eventfd_t v;
+	char buf[8];
+	int fd, fd2, p[2], i;
+
+	subtest = 6;
+	if ((fd = eventfd(0, EFD_NONBLOCK)) < 0) { e(1); return; }
+	u = 1;
+	if (write(fd, &u, sizeof(u)) != 8) e(2);
+	if (readable(fd, 1000) != 1) e(3);
+	u = 41;
+	if (write(fd, &u, sizeof(u)) != 8) e(4);
+	u = 0;
+	if (read(fd, &u, sizeof(u)) != 8 || u != 42) e(5);
+	if (readable(fd, 0) != 0) e(6);
+	if (read(fd, &u, sizeof(u)) != -1 ||
+	    (errno != EAGAIN && errno != EWOULDBLOCK)) e(7);
+
+	/* mixed with the eventfd_*() calls */
+	u = 2;
+	if (write(fd, &u, sizeof(u)) != 8) e(8);
+	if (eventfd_write(fd, 3) != 0) e(9);
+	if (eventfd_read(fd, &v) != 0 || v != 5) e(10);
+
+	/* bad sizes and values; a zero changes nothing */
+	errno = 0;
+	if (write(fd, "abc", 3) != -1 || errno != EINVAL) e(11);
+	u = UINT64_MAX;
+	errno = 0;
+	if (write(fd, &u, sizeof(u)) != -1 || errno != EINVAL) e(12);
+	u = 0;
+	if (write(fd, &u, sizeof(u)) != 8) e(13);
+	if (readable(fd, 0) != 0) e(14);
+
+	/* far more writes than a socket buffer holds units */
+	u = 1;
+	for (i = 0; i < 20000; i++)
+		if (write(fd, &u, sizeof(u)) != 8) { e(15); break; }
+	if (read(fd, &u, sizeof(u)) != 8 || u != 20000) e(16);
+	if (readable(fd, 0) != 0) e(17);
+
+	/* a semaphore: units of one, also through read(2) */
+	if ((fd2 = eventfd(0, EFD_NONBLOCK | EFD_SEMAPHORE)) < 0) e(18);
+	u = 2;
+	if (write(fd2, &u, sizeof(u)) != 8) e(19);
+	if (read(fd2, &u, sizeof(u)) != 8 || u != 1) e(20);
+	if (read(fd2, &u, sizeof(u)) != 8 || u != 1) e(21);
+	if (read(fd2, &u, sizeof(u)) != -1) e(22);
+	close(fd2);
+
+	/* the number goes to a pipe: writes are the pipe's again */
+	close(fd);
+	if (pipe(p) != 0) { e(23); return; }
+	if (p[0] != fd && p[1] != fd) {
+		/* make it the write end's number */
+		if (dup2(p[1], fd) != fd) e(24);
+		close(p[1]);
+		p[1] = fd;
+	}
+	if (p[1] == fd) {
+		if (write(fd, "abc", 3) != 3) e(25);
+		if (read(p[0], buf, sizeof(buf)) != 3 ||
+		    memcmp(buf, "abc", 3) != 0) e(26);
+		if (write(fd, "12345678", 8) != 8) e(27);
+		if (read(p[0], buf, sizeof(buf)) != 8 ||
+		    memcmp(buf, "12345678", 8) != 0) e(28);
+	} else {
+		if (write(p[1], "abc", 3) != 3) e(29);
+		if (read(fd, buf, sizeof(buf)) != 3) e(30);
+	}
+	close(p[0]);
+	close(p[1]);
+
+	/* ... and to another socket (the device number may be recycled) */
+	if ((fd = eventfd(0, EFD_NONBLOCK)) < 0) { e(31); return; }
+	close(fd);
+	if (socketpair(AF_UNIX, SOCK_STREAM, 0, p) != 0) { e(32); return; }
+	if (write(p[0], "12345678", 8) != 8) e(33);
+	if (read(p[1], buf, sizeof(buf)) != 8 ||
+	    memcmp(buf, "12345678", 8) != 0) e(34);
+	if (write(p[1], "87654321", 8) != 8) e(35);
+	if (read(p[0], buf, sizeof(buf)) != 8 ||
+	    memcmp(buf, "87654321", 8) != 0) e(36);
+	close(p[0]);
+	close(p[1]);
 }
 
 /* 1. eventfd counter semantics. */
@@ -392,6 +490,7 @@ main(int argc, char **argv)
 	test_signalfd();
 	test_mixed_poll();
 	test_no_sigpipe();
+	test_eventfd_rw();
 
 	quit();
 	return 0;

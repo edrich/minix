@@ -453,11 +453,35 @@ int
 epoll_pwait(int epfd, struct epoll_event *events, int maxevents, int timeout,
 	const sigset_t *sigmask)
 {
-	sigset_t old;
-	int r, e;
+	sigset_t old, pend;
+	int r, e, sig;
 
-	/* Not atomic like Linux: a signal unblocked here may be delivered
-	 * just before poll() starts and not interrupt it. */
+	/*
+	 * Linux swaps the mask and waits atomically.  Here, a signal that
+	 * is pending now and unblocked by 'sigmask' would be handled inside
+	 * sigprocmask() below, before poll() starts, and poll() would then
+	 * sleep although the caller's handler ran (event loops that block
+	 * SIGCHLD and friends outside epoll_pwait() and look at a flag set
+	 * by the handler once it returns: foot stayed open after its client
+	 * had exited).  So: let such signals be handled, then say EINTR as
+	 * Linux does.  What remains non-atomic is a signal that arrives
+	 * between sigprocmask() and poll().
+	 */
+	if (sigmask != NULL && sigpending(&pend) == 0) {
+		for (sig = 1; sig < _NSIG; sig++) {
+			if (sigismember(&pend, sig) != 1 ||
+			    sigismember(sigmask, sig) == 1)
+				continue;
+			if (sigprocmask(SIG_SETMASK, sigmask, &old) != 0)
+				return -1;
+			sigprocmask(SIG_SETMASK, &old, NULL);
+			if (maxevents <= 0 || events == NULL)
+				errno = EINVAL;
+			else
+				errno = EINTR;
+			return -1;
+		}
+	}
 	if (sigmask != NULL && sigprocmask(SIG_SETMASK, sigmask, &old) != 0)
 		return -1;
 	r = epoll_wait(epfd, events, maxevents, timeout);
