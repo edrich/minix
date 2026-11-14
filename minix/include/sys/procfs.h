@@ -12,7 +12,7 @@
 
 #include <sys/param.h>
 #include <sys/elf_core.h>
-#include <i386/stackframe.h>
+#include <machine/stackframe.h>
 
 /*
  *

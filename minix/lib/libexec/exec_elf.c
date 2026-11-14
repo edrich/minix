@@ -19,8 +19,8 @@
 /* For verbose logging */
 #define ELF_DEBUG 0
 
-/* Support only 32-bit ELF objects */
-#define __ELF_WORD_SIZE 32
+/* Support only ELF objects of the native word size */
+#define __ELF_WORD_SIZE ARCH_ELFSIZE
 
 #define SECTOR_SIZE 512
 
@@ -246,7 +246,7 @@ int libexec_load_elf(struct exec_info *execi)
 				vaddr, vaddr+fbytes, clearend);
 #endif
 
-			if(seg_membytes > fbytes) {
+			if(seg_membytes > (vir_bytes) fbytes) {
 				int rem_mem = seg_membytes - fbytes;;
 				vir_bytes remstart = vaddr + fbytes;
 				if(execi->allocmem_ondemand(execi,

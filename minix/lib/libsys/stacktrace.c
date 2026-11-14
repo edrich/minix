@@ -10,7 +10,7 @@ Copyright 1995 Philip Homburg
 #include <string.h>
 #include <minix/sysutil.h>
 
-typedef unsigned int reg_t;
+typedef unsigned long reg_t;	/* a machine word on all our ports */
 
 extern reg_t get_bp(void);
 
