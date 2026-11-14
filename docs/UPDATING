@@ -1,4 +1,10 @@
 20261114:
+	libc gains getpgid(2) (it was declared but missing; PM's getsid
+	call, as process group and session are one id on MINIX).  Programs
+	built against the new libc that use it need the new libc.so at
+	run time.  Rebuild world.
+
+20261114:
 	PM keeps the core file size limit: getrlimit()/setrlimit() of
 	RLIMIT_CORE are real (new PM call PM_RLIMIT; the other resources
 	are still stubs), the limit is inherited by fork and kept across
