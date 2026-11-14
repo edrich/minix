@@ -73,7 +73,9 @@ int getuctx(ucontext_t *ucp)
 void makecontext(ucontext_t *ucp, void (*func)(void), int argc, ...)
 {
   va_list ap;
+#if !defined(__x86_64__)
   unsigned int *stack_top;
+#endif
 
   /* There are a number of situations that are erroneous, but we can't actually
      tell the caller something is wrong, because this is a void function.
@@ -208,6 +210,66 @@ void makecontext(ucontext_t *ucp, void (*func)(void), int argc, ...)
 	   swapcontext will choke on this and return ENOMEM. */
 	if (stack_top == ucp->uc_stack.ss_sp) {
 		_UC_MACHINE_SET_STACK(ucp, 0);
+	}
+#elif defined(__x86_64__)
+	/* The caller provides a pointer to a stack that we can use to run our
+	   context on. When the context starts, control is given to a wrapped
+	   start routine, ctx_start, which calls `func' and then
+	   resumecontext.
+
+	   The first six arguments of `func' are passed in registers as
+	   specified by the ABI, the rest goes on the stack. `func' itself is
+	   passed in rbx and ucp in r12; both registers are callee-preserved,
+	   so ucp is still valid in r12 when `func' returns to ctx_start.
+	   setcontext() loads all of these registers.
+
+	   Resumecontext, in turn, checks whether another context is ready to
+	   be executed (i.e., uc_link != NULL) or exit(2)s the process. */
+	{
+	unsigned long *sp;
+	int i, nstack;
+
+	nstack = argc > 6 ? argc - 6 : 0;
+
+	/* Find the top of the stack from which we grow downwards. */
+	sp = (unsigned long *) ((uintptr_t) ucp->uc_stack.ss_sp +
+					    ucp->uc_stack.ss_size);
+
+	/* Make room for the arguments that do not fit in registers, such
+	   that the stack pointer is aligned to 16 bytes at the point where
+	   ctx_start calls `func', as the ABI requires. */
+	sp -= nstack;
+	sp = (unsigned long *) ((uintptr_t) sp & ~0xfUL);
+
+	/* Adjust the machine context to point to the top of this stack and the
+	   program counter to the context start wrapper. */
+	_UC_MACHINE_SET_RBP(ucp, 0); /* Clear frame pointer */
+	_UC_MACHINE_SET_STACK(ucp, (reg_t) sp);
+	_UC_MACHINE_SET_PC(ucp, (reg_t) ctx_start);
+	ucp->uc_mcontext.__gregs[_REG_RBX] = (reg_t) func;
+	ucp->uc_mcontext.__gregs[_REG_R12] = (reg_t) ucp;
+
+	va_start(ap, argc);
+	for (i = 0; i < argc; i++) {
+		unsigned long arg = va_arg(ap, unsigned long);
+
+		switch (i) {
+		case 0: ucp->uc_mcontext.__gregs[_REG_RDI] = arg; break;
+		case 1: ucp->uc_mcontext.__gregs[_REG_RSI] = arg; break;
+		case 2: ucp->uc_mcontext.__gregs[_REG_RDX] = arg; break;
+		case 3: ucp->uc_mcontext.__gregs[_REG_RCX] = arg; break;
+		case 4: ucp->uc_mcontext.__gregs[_REG_R8] = arg; break;
+		case 5: ucp->uc_mcontext.__gregs[_REG_R9] = arg; break;
+		default: sp[i - 6] = arg; break;
+		}
+	}
+	va_end(ap);
+
+	/* If we ran out of stack space, invalidate stack pointer. Eventually,
+	   swapcontext will choke on this and return ENOMEM. */
+	if ((void *) sp <= ucp->uc_stack.ss_sp) {
+		_UC_MACHINE_SET_STACK(ucp, 0);
+	}
 	}
 #else
 # error "Unsupported platform"

@@ -54,7 +54,7 @@ __RCSID("$NetBSD: crt0-common.c,v 1.13 2013/01/31 22:24:25 matt Exp $");
 extern int main(int, char **, char **);
 
 /*
- * MINIX i386 note (dual stack): with HAVE_INITFINI_ARRAY the static _init
+ * MINIX i386/x86_64 note (dual stack): with HAVE_INITFINI_ARRAY the static _init
  * below walks .init_array (used by modern compilers). The in-tree compiler
  * still emits ctors into .ctors, walked by the legacy extern _init from
  * crti.S/crtbegin.S. On minix-i386 we keep BOTH: walk the arrays and call
@@ -63,7 +63,8 @@ extern int main(int, char **, char **);
  * would lose their ctors: libc's __minix_init never runs and RS panics
  * with "_minix_kerninfo != NULL".)
  */
-#if defined(__minix) && defined(__i386__) && defined(HAVE_INITFINI_ARRAY)
+#if defined(__minix) && (defined(__i386__) || defined(__x86_64__)) && \
+    defined(HAVE_INITFINI_ARRAY)
 #define MINIX_CSU_DUAL_INIT 1
 #endif
 
