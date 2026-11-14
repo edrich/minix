@@ -12,12 +12,26 @@
 #include <errno.h>
 #include <limits.h>
 #include <sys/resource.h>
+#include <string.h>
 #include <unistd.h>
+#include <lib.h>
 
 int getrlimit(int resource, struct rlimit *rlp)
 {
 	rlim_t limit;
-	
+	message m;
+
+	/* The core file limit is kept by PM (0 = no core dumps). */
+	if (resource == RLIMIT_CORE) {
+		memset(&m, 0, sizeof(m));
+		m.m_lc_pm_rlimit.resource = resource;
+		if (_syscall(PM_PROC_NR, PM_RLIMIT, &m) < 0)
+			return -1;
+		rlp->rlim_cur = m.m_lc_pm_rlimit.cur;
+		rlp->rlim_max = m.m_lc_pm_rlimit.max;
+		return 0;
+	}
+
 	switch (resource)
 	{
 		case RLIMIT_CPU:

@@ -1,3 +1,14 @@
+20261114:
+	PM keeps the core file size limit: getrlimit()/setrlimit() of
+	RLIMIT_CORE are real (new PM call PM_RLIMIT; the other resources
+	are still stubs), the limit is inherited by fork and kept across
+	exec, and a process whose soft limit is 0 leaves no core file -
+	"ulimit -c 0" works.  Limits other than 0 do not truncate the
+	dump.  PM and libc have to be updated together: a new libc on an
+	old PM gets ENOSYS from get/setrlimit(RLIMIT_CORE) (sh's ulimit -c
+	then fails); old binaries on the new PM behave as before.  Rebuild
+	world and install a new boot image (make hdboot).
+
 20261110:
 	/etc/profile no longer exports LD_LIBRARY_PATH (NetBSD does not
 	either).  The dynamic linker searches LD_LIBRARY_PATH before a
