@@ -2680,12 +2680,13 @@ typedef struct noxfer_message {
 		mess_vmmcp		m_vmmcp;
 		mess_vmmcp_reply	m_vmmcp_reply;
 
-		u8_t size[56];	/* message payload may have 56 bytes at most */
+		/* message payload may have this many bytes at most */
+		u8_t size[_MSG_PAYLOAD_SIZE];
 	};
 } message __ALIGNED(16);
 
 /* Ensure the complete union respects the IPC assumptions. */
-typedef int _ASSERT_message[/* CONSTCOND */sizeof(message) == 64 ? 1 : -1];
+typedef int _ASSERT_message[/* CONSTCOND */sizeof(message) == _MSG_SIZE ? 1 : -1];
 
 /* The following defines provide names for useful members. */
 #define m1_i1  m_m1.m1i1
