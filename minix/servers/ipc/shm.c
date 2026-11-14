@@ -250,11 +250,11 @@ fill_shminfo(struct shminfo * sinfo)
 
 	memset(sinfo, 0, sizeof(*sinfo));
 
-	sinfo->shmmax = (unsigned long)-1;
+	sinfo->shmmax = ~(typeof(sinfo->shmmax))0;
 	sinfo->shmmin = 1;
 	sinfo->shmmni = __arraycount(shm_list);
-	sinfo->shmseg = (unsigned long)-1;
-	sinfo->shmall = (unsigned long)-1;
+	sinfo->shmseg = ~(typeof(sinfo->shmseg))0;
+	sinfo->shmall = ~(typeof(sinfo->shmall))0;
 }
 
 int
@@ -375,7 +375,7 @@ do_shmctl(message * m)
  * node in the kern.ipc subtree.  The particular semantics of this call are
  * tightly coupled to the implementation of the ipcs(1) userland utility.
  */
-ssize_t
+int
 get_shm_mib_info(struct rmib_oldp * oldp)
 {
 	struct shm_sysctl_info shmsi;

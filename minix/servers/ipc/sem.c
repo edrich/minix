@@ -783,7 +783,7 @@ out_free:
  * in the kern.ipc subtree.  The particular semantics of this call are tightly
  * coupled to the implementation of the ipcs(1) userland utility.
  */
-ssize_t
+int
 get_sem_mib_info(struct rmib_oldp * oldp)
 {
 	struct sem_sysctl_info semsi;

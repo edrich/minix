@@ -321,8 +321,8 @@ int read_super(struct super_block *sp)
   }
 
   /* Limit s_max_size to LONG_MAX */
-  if ((unsigned long)sp->s_max_size > LONG_MAX) 
-	sp->s_max_size = LONG_MAX;
+  if ((unsigned long)sp->s_max_size > INT32_MAX)
+	sp->s_max_size = INT32_MAX;	/* LONG_MAX of the 32-bit ports */
 
   sp->s_isearch = 0;		/* inode searches initially start at 0 */
   sp->s_zsearch = 0;		/* zone searches initially start at 0 */

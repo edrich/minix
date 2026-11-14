@@ -74,3 +74,12 @@ OBJS+=	${f:C/\.o/.bc/}
 CLEANFILES+= ${f:C/\.o/.bc/}
 .endif # ${USE_BITCODE:Uno} == "yes"
 .endfor
+
+# On LP64 the common strcspn() is implemented in strspn.c.
+.for f in \
+	strspn.o
+${f} ${f:C/\.o/.bc/}:	${LIBCOMMONCDIR}/string/${f:C/\.o/.c/}
+${f} ${f:C/\.o/.go/}:	${LIBCOMMONCDIR}/string/${f:C/\.o/.c/}
+OBJS+=	${f}
+CLEANFILES+= ${f}
+.endfor

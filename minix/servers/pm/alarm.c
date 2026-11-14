@@ -34,6 +34,7 @@ static clock_t ticks_from_timeval(tv)
 struct timeval *tv;
 {
   clock_t ticks;
+  unsigned long t;
 
   /* Large delays cause a lot of problems.  First, the alarm system call
    * takes an unsigned seconds count and the library has cast it to an int.
@@ -52,14 +53,19 @@ struct timeval *tv;
 
   /* In any case, the following conversion must always round up. */
 
-  ticks = system_hz * (unsigned long) tv->tv_sec;
-  if ( (ticks / system_hz) != (unsigned long)tv->tv_sec) {
-	ticks = LONG_MAX;
+  /* The limit is that of a signed 32-bit tick count, whatever the size
+   * of a long is.
+   */
+  t = system_hz * (unsigned long) tv->tv_sec;
+  if ( (t / system_hz) != (unsigned long)tv->tv_sec) {
+	t = INT32_MAX;
   } else {
-	ticks += ((system_hz * (unsigned long)tv->tv_usec + (US-1)) / US);
+	t += ((system_hz * (unsigned long)tv->tv_usec + (US-1)) / US);
   }
 
-  if (ticks > LONG_MAX) ticks = LONG_MAX;
+  if (t > INT32_MAX) t = INT32_MAX;
+
+  ticks = (clock_t) t;
 
   return(ticks);
 }

@@ -23,7 +23,11 @@ touch-genfiles:
 
 .mfs.o:
 	${_MKTARGET_CREATE}
+.if ${MACHINE_ARCH} == "x86_64"
+	${OBJCOPY} -Ibinary -Bi386:x86-64 -Oelf64-x86-64 $< $@
+.else
 	${OBJCOPY} -Ibinary -B${MACHINE_CPU} -O${MACHINE_GNU_PLATFORM} $< $@
+.endif
 
 CLEANFILES+=	../ramdisk/image
 # BJG - don't invoke parallel Makes
