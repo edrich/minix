@@ -1077,7 +1077,11 @@ MACHINE_GNU_PLATFORM?=${MACHINE_GNU_ARCH}--netbsd
 
 .if defined(__MINIX)
 # We have a simpler toolchain naming scheme
+.if ${MACHINE_ARCH} == "x86_64"
+MACHINE_GNU_PLATFORM:=${MACHINE_GNU_ARCH}-elf64-minix
+.else
 MACHINE_GNU_PLATFORM:=${MACHINE_GNU_ARCH}-elf32-minix
+.endif
 
 # We need to check for HAVE_GOLD after LD has been set
 .  if ${_HAVE_GOLD:U} == ""
@@ -1230,7 +1234,7 @@ MKBINUTILS?=	${MKBFD}
 #
 # We want to build zfs only for amd64 by default for now.
 #
-.if ${MACHINE} == "amd64"
+.if ${MACHINE} == "amd64" && !defined(__MINIX)
 MKZFS?=		yes
 .endif
 
@@ -1267,6 +1271,10 @@ _MKVARS.yes+= \
 .if (${MACHINE_ARCH} == "i386")
 _MKVARS.yes+= \
 	MKWATCHDOG MKACPI MKAPIC MKDEBUGREG MKINSTALLBOOT MKPCI
+.endif
+.if (${MACHINE_ARCH} == "x86_64")
+_MKVARS.yes+= \
+	MKDEBUGREG MKINSTALLBOOT MKPCI
 .endif
 
 .for var in ${_MKVARS.yes}
@@ -1308,6 +1316,11 @@ _MKVARS.no+= \
 .if !empty(MACHINE_ARCH:Mearm*)
 _MKVARS.no+= \
 	MKWATCHDOG MKPAE MKACPI MKAPIC MKDEBUGREG MKINSTALLBOOT MKPCI
+.endif
+.if (${MACHINE_ARCH} == "x86_64")
+# amd64 port: PIC + PIT, single CPU for now.
+_MKVARS.no+= \
+	MKWATCHDOG MKACPI MKAPIC
 .endif
 
 .for var in ${_MKVARS.no}
