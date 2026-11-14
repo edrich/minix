@@ -3,10 +3,18 @@
 
 PROG=	vm
 SRCS=	main.c alloc.c utility.c exit.c fork.c break.c \
-	mmap.c slaballoc.c region.c pagefaults.c pagetable.c \
+	mmap.c slaballoc.c region.c pagefaults.c \
 	rs.c pb.c regionavl.c \
 	mem_anon.c mem_directphys.c mem_anon_contig.c mem_shared.c	\
 	mem_cache.c cache.c vfs.c mem_file.c fdref.c acl.c
+
+# The page table code: x86_64 has its own (4-level) implementation in
+# arch/x86_64, the 2-level architectures share pagetable.c.
+.if ${MACHINE_ARCH} == "x86_64"
+SRCS+=	pagetable_x86_64.c
+.else
+SRCS+=	pagetable.c
+.endif
 
 .if ${MACHINE_ARCH} == "earm"
 LDFLAGS+= -T ${.CURDIR}/arch/${MACHINE_ARCH}/vm.lds

@@ -29,8 +29,15 @@
 #include "sanitycheck.h"
 #include "memlist.h"
 
+#if defined(__x86_64__)
+/* Number of physical pages that the kernel's direct map covers (64GB, see
+ * KERNEL_DMAP_GB in the kernel); it does not report any memory beyond that.
+ */
+#define NUMBER_PHYSICAL_PAGES (int)(0x1000000000ULL/VM_PAGE_SIZE)
+#else
 /* Number of physical pages in a 32-bit address space */
 #define NUMBER_PHYSICAL_PAGES (int)(0x100000000ULL/VM_PAGE_SIZE)
+#endif
 #define PAGE_BITMAP_CHUNKS BITMAP_CHUNKS(NUMBER_PHYSICAL_PAGES)
 static bitchunk_t free_pages_bitmap[PAGE_BITMAP_CHUNKS];
 #define PAGE_CACHE_MAX 10000

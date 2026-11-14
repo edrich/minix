@@ -60,6 +60,23 @@ page size (2MB).
 #define X86_64_VM_KERN_BASE	0xFFFF800000000000UL /* first kernel address */
 #define X86_64_VM_USER_PML4_ENTRIES	256	/* PML4 slots of user space */
 
+/* Two PML4 slots of the user half have a fixed purpose, agreed on by the
+ * kernel and VM:
+ *
+ * X86_64_VM_DMAP_PML4E: in the address space of the VM server only, a
+ * view of all of physical memory (the same tables as the kernel's direct
+ * map).  VM uses it to get at page tables and at the memory it allocates
+ * for itself, without having to map these one by one.
+ *
+ * X86_64_VM_KERNMAP_PML4E: in every address space, the pages the kernel
+ * asks VM to map for it, among which the user-visible part of the kernel
+ * (kernel info structures and IPC stubs).
+ */
+#define X86_64_VM_DMAP_PML4E	128
+#define X86_64_VM_DMAP_BASE	0x0000400000000000UL
+#define X86_64_VM_KERNMAP_PML4E	255
+#define X86_64_VM_KERNMAP_BASE	0x00007F8000000000UL
+
 /* CR0 bits */
 #define I386_CR0_PE		0x00000001	/* Protected mode  */
 #define I386_CR0_MP		0x00000002	/* Monitor Coprocessor  */

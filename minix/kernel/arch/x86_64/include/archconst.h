@@ -4,6 +4,7 @@
 
 #include <machine/interrupt.h>
 #include <machine/memory.h>
+#include <machine/vm.h>
 
 /* Constants for protected mode. */
 
@@ -186,8 +187,8 @@
 /* VM gets its own view of the direct map, in the user half of its address
  * space only, at this address (PML4 slot VM_DMAP_PML4E).
  */
-#define VM_DMAP_PML4E		128
-#define VM_DMAP_BASE		0x0000400000000000
+#define VM_DMAP_PML4E		X86_64_VM_DMAP_PML4E	/* <machine/vm.h> */
+#define VM_DMAP_BASE		X86_64_VM_DMAP_BASE
 
 #ifndef __ASSEMBLY__
 #define PHYS_TO_DMAP(ph)	((void *)(KERNEL_DMAP_BASE + (phys_bytes)(ph)))

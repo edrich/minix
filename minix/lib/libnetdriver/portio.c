@@ -30,7 +30,7 @@ netdriver_portb(struct netdriver_data * data, size_t off, long port,
 		assert(chunk > 0);
 
 		if ((r = sys_sdevio(req, port, data->endpt,
-		    (void *)data->iovec[i].iov_grant, chunk, off)) != OK)
+		    (void *)(vir_bytes)data->iovec[i].iov_grant, chunk, off)) != OK)
 			panic("netdriver: port I/O failed: %d", r);
 
 		i++;
@@ -99,7 +99,8 @@ netdriver_portinw(struct netdriver_data * data, size_t off, long port,
 
 		if (chunk > 0) {
 			if ((r = sys_safe_insw(port, data->endpt,
-			    data->iovec[i].iov_grant, off, chunk)) != OK)
+			    (vir_bytes)data->iovec[i].iov_grant, off,
+			    chunk)) != OK)
 				panic("netdriver: port input failed: %d", r);
 
 			off += chunk;
@@ -164,7 +165,8 @@ netdriver_portoutw(struct netdriver_data * data, size_t off, long port,
 
 		if (chunk > 0) {
 			if ((r = sys_safe_outsw(port, data->endpt,
-			    data->iovec[i].iov_grant, off, chunk)) != OK)
+			    (vir_bytes)data->iovec[i].iov_grant, off,
+			    chunk)) != OK)
 				panic("netdriver: port output failed: %d", r);
 
 			off += chunk;
