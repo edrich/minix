@@ -256,7 +256,7 @@ void print_proc(struct proc *pp)
 		pp->p_priority, pp->p_user_time,
 		pp->p_sys_time, ex64hi(pp->p_cycles),
 		ex64lo(pp->p_cycles), pp->p_cpu,
-#if defined(__i386__)
+#if defined(__i386__) || defined(__x86_64__)
 		pp->p_seg.p_cr3,
 #elif defined(__arm__)
 		pp->p_seg.p_ttbr,

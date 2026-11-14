@@ -1098,9 +1098,9 @@ void pt_init(void)
 	int m = kernel_boot_info.kern_mod;
 #if defined(__i386__)
 	int global_bit_ok = 0;
-	u32_t mypdbr; /* Page Directory Base Register (cr3) value */
+	phys_bytes mypdbr; /* Page Directory Base Register (cr3) value */
 #elif defined(__arm__)
-	u32_t myttbr;
+	phys_bytes myttbr;
 #endif
 
 	/* Find what the physical location of the kernel is. */

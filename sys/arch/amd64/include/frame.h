@@ -120,17 +120,23 @@ struct sigframe_siginfo {
 
 #if defined(__minix)
 /*
- * MINIX signal frame, built by the kernel on the user stack.  The handler
- * gets its arguments in registers (rdi = signum, rsi = code, rdx = scp),
- * so unlike on i386 they are not part of the frame.  The handler returns
- * to __sigreturn, which finds the fake frame for stack traces
- * (sf_fp, sf_ra) and then the context pointer on top of the stack.
+ * MINIX signal frame, built by the kernel on the user stack, below the
+ * red zone of the interrupted code.  The handler gets its arguments in
+ * registers (rdi = signum, rsi = code, rdx = scp); the copies in the frame
+ * are informational.  The handler returns to __sigreturn through
+ * sf_ra_sigreturn, which skips the fake call frame (sf_fp, sf_ra: there
+ * for stack traces) and finds the context pointer for sigreturn() in
+ * sf_scpcopy.  The frame is placed such that the stack is aligned as the
+ * ABI wants it on entry of the handler.
  */
 struct sigframe_sigcontext {
 	uint64_t sf_ra_sigreturn;	/* first return to sigreturn */
 	uint64_t sf_fp;			/* saved FP */
 	uint64_t sf_ra;			/* actual return address for handler */
 	struct	sigcontext *sf_scpcopy;	/* minix scp copy */
+	struct	sigcontext *sf_scp;	/* "scp" argument for handler */
+	int	sf_signum;		/* "signum" argument for handler */
+	int	sf_code;		/* "code" argument for handler */
 	struct	sigcontext sf_sc;	/* actual saved context */
 };
 #endif /* defined(__minix) */

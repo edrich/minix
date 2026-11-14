@@ -33,7 +33,7 @@ int do_getmcontext(struct proc * caller, message * m_ptr)
   if (iskerneln(proc_nr)) return(EPERM);
   rp = proc_addr(proc_nr);
 
-#if defined(__i386__)
+#if defined(__i386__) || defined(__x86_64__)
   if (!proc_used_fpu(rp))
 	return(OK);	/* No state to copy */
 #endif
@@ -54,6 +54,16 @@ int do_getmcontext(struct proc * caller, message * m_ptr)
 	assert(sizeof(mc.__fpregs.__fp_reg_set) == FPU_XFP_SIZE);
 	memcpy(&(mc.__fpregs.__fp_reg_set), rp->p_seg.fpu_state, FPU_XFP_SIZE);
   } 
+#endif
+#if defined(__x86_64__)
+  /* Copy FPU state */
+  if (proc_used_fpu(rp)) {
+	/* make sure that the FPU context is saved into proc structure first */
+	save_fpu(rp);
+	mc.mc_flags = (rp->p_misc_flags & MF_FPU_INITIALIZED) ? _MC_FPU_SAVED : 0;
+	assert(sizeof(mc.__fpregs) == FPU_XFP_SIZE);
+	memcpy(&mc.__fpregs, rp->p_seg.fpu_state, FPU_XFP_SIZE);
+  }
 #endif
 
 
@@ -94,6 +104,17 @@ int do_setmcontext(struct proc * caller, message * m_ptr)
 	rp->p_misc_flags |= MF_FPU_INITIALIZED;
 	assert(sizeof(mc.__fpregs.__fp_reg_set) == FPU_XFP_SIZE);
 	memcpy(rp->p_seg.fpu_state, &(mc.__fpregs.__fp_reg_set), FPU_XFP_SIZE);
+  } else
+	rp->p_misc_flags &= ~MF_FPU_INITIALIZED;
+  /* force reloading FPU in either case */
+  release_fpu(rp);
+#endif
+#if defined(__x86_64__)
+  /* Copy FPU state */
+  if (mc.mc_flags & _MC_FPU_SAVED) {
+	rp->p_misc_flags |= MF_FPU_INITIALIZED;
+	assert(sizeof(mc.__fpregs) == FPU_XFP_SIZE);
+	memcpy(rp->p_seg.fpu_state, &mc.__fpregs, FPU_XFP_SIZE);
   } else
 	rp->p_misc_flags &= ~MF_FPU_INITIALIZED;
   /* force reloading FPU in either case */

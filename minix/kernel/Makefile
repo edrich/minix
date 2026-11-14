@@ -111,3 +111,11 @@ USE_MAGIC=no
 MKCOVERAGE=no
 
 .include <minix.service.mk>
+
+.if ${MACHINE_ARCH} == "x86_64"
+# The kernel can not be linked against the regular libraries on x86_64: it
+# is built with a different code model, without a red zone and without SSE.
+# The library code it needs is compiled into it, see the arch Makefile.inc.
+LDADD:=
+DPADD:=
+.endif

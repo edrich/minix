@@ -30,6 +30,14 @@
 #define END_OF_KMESS	0
 
 /* User limits. */
+#if defined(__x86_64__)
+/* The lower canonical half of the address space, minus the topmost PML4
+ * slot of that half (255), which VM uses for the pages the kernel maps
+ * into every process, and minus a guard gap below that.
+ */
+#define USR_DATATOP 0x00007F0000000000
+#endif
+
 #ifndef USR_DATATOP
 #ifndef _MINIX_MAGIC
 #define USR_DATATOP 0xF0000000

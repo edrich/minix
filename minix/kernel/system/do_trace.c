@@ -156,6 +156,16 @@ int do_trace(struct proc * caller, message * m_ptr)
 		SETPSW(rp, tr_data);
 	else
 		*(reg_t *) ((char *) &rp->p_reg + i) = (reg_t) tr_data;
+#elif defined(__x86_64__)
+	/* The segment selectors a process runs with are fixed. */
+	if (i == (int) offsetof(struct proc, p_reg.cs) ||
+	    i == (int) offsetof(struct proc, p_reg.ss))
+		return(EFAULT);
+	if (i == (int) offsetof(struct proc, p_reg.psw))
+		/* only selected bits are changeable */
+		SETPSW(rp, tr_data);
+	else
+		*(reg_t *) ((char *) &rp->p_reg + i) = (reg_t) tr_data;
 #elif defined(__arm__)
 	if (i == (int) &((struct proc *) 0)->p_reg.psr) {
 		/* only selected bits are changeable */

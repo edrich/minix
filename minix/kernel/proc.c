@@ -450,7 +450,7 @@ check_misc_flags:
 	 */
 	p->p_misc_flags &= ~MF_CONTEXT_SET;
 
-#if defined(__i386__)
+#if defined(__i386__) || defined(__x86_64__)
   	assert(p->p_seg.p_cr3 != 0);
 #elif defined(__arm__)
 	assert(p->p_seg.p_ttbr != 0);

@@ -172,7 +172,7 @@ void stop_profile_clock(void);
 /* functions defined in architecture-dependent files. */
 void prot_init(void);
 void arch_post_init(void);
-void arch_set_secondary_ipc_return(struct proc *, u32_t val);
+void arch_set_secondary_ipc_return(struct proc *, reg_t val);
 phys_bytes phys_copy(phys_bytes source, phys_bytes dest, phys_bytes
 	count);
 void phys_copy_fault(void);
@@ -214,7 +214,7 @@ void do_ser_debug(void);
 int arch_get_params(char *parm, int max);
 void memory_init(void);
 void mem_clear_mapcache(void);
-void arch_proc_init(struct proc *pr, u32_t, u32_t, u32_t, char *);
+void arch_proc_init(struct proc *pr, reg_t, reg_t, reg_t, char *);
 int arch_do_vmctl(message *m_ptr, struct proc *p);
 int vm_contiguous(const struct proc *targetproc, vir_bytes vir_buf,
 	size_t count);

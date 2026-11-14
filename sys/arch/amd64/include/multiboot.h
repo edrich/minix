@@ -220,7 +220,7 @@ struct multiboot_mmap {
 	uint64_t	mm_base_addr;
 	uint64_t	mm_length;
 	uint32_t	mm_type;
-};
+} __packed;	/* laid out for a 32-bit ABI: no padding before the 64-bit members */
 
 /*
  * Modules. This describes an entry in the modules table as pointed

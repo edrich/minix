@@ -29,7 +29,7 @@ int do_fork(struct proc * caller, message * m_ptr)
  * m_lsys_krn_sys_fork.endpt has forked.
  * The child is m_lsys_krn_sys_fork.slot.
  */
-#if defined(__i386__)
+#if defined(__i386__) || defined(__x86_64__)
   char *old_fpu_save_area_p;
 #endif
   register struct proc *rpc;		/* child process pointer */
@@ -57,11 +57,11 @@ int do_fork(struct proc * caller, message * m_ptr)
   save_fpu(rpp);
   /* Copy parent 'proc' struct to child. And reinitialize some fields. */
   gen = _ENDPOINT_G(rpc->p_endpoint);
-#if defined(__i386__)
+#if defined(__i386__) || defined(__x86_64__)
   old_fpu_save_area_p = rpc->p_seg.fpu_state;
 #endif
   *rpc = *rpp;				/* copy 'proc' struct */
-#if defined(__i386__)
+#if defined(__i386__) || defined(__x86_64__)
   rpc->p_seg.fpu_state = old_fpu_save_area_p;
   if(proc_used_fpu(rpp))
 	memcpy(rpc->p_seg.fpu_state, rpp->p_seg.fpu_state, FPU_XFP_SIZE);
@@ -122,7 +122,7 @@ int do_fork(struct proc * caller, message * m_ptr)
   RTS_UNSET(rpc, (RTS_SIGNALED | RTS_SIG_PENDING | RTS_P_STOP));
   (void) sigemptyset(&rpc->p_pending);
 
-#if defined(__i386__)
+#if defined(__i386__) || defined(__x86_64__)
   rpc->p_seg.p_cr3 = 0;
   rpc->p_seg.p_cr3_v = NULL;
 #elif defined(__arm__)
