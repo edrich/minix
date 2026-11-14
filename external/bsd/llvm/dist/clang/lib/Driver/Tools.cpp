@@ -7640,6 +7640,9 @@ void minix::Assemble::ConstructJob(Compilation &C, const JobAction &JA,
   case llvm::Triple::x86:
     CmdArgs.push_back("--32");
     break;
+  case llvm::Triple::x86_64:
+    CmdArgs.push_back("--64");
+    break;
   case llvm::Triple::arm:
   case llvm::Triple::armeb:
   case llvm::Triple::thumb:
@@ -7733,6 +7736,10 @@ void minix::Link::ConstructJob(Compilation &C, const JobAction &JA,
   // Many NetBSD architectures support more than one ABI.
   // Determine the correct emulation for ld.
   switch (getToolChain().getArch()) {
+  case llvm::Triple::x86_64:
+    CmdArgs.push_back("-m");
+    CmdArgs.push_back("elf_x86_64_minix");
+    break;
   case llvm::Triple::x86:
     CmdArgs.push_back("-m");
     CmdArgs.push_back("elf_i386_minix");

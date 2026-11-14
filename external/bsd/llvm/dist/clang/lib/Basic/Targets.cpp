@@ -6802,6 +6802,8 @@ static TargetInfo *AllocateTarget(const llvm::Triple &Triple) {
       return new DragonFlyBSDTargetInfo<X86_64TargetInfo>(Triple);
     case llvm::Triple::NetBSD:
       return new NetBSDTargetInfo<X86_64TargetInfo>(Triple);
+    case llvm::Triple::Minix:
+      return new MinixTargetInfo<X86_64TargetInfo>(Triple);
     case llvm::Triple::OpenBSD:
       return new OpenBSDX86_64TargetInfo(Triple);
     case llvm::Triple::Bitrig:
