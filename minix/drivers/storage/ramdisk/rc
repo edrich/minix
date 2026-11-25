@@ -6,7 +6,8 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 FSCK=/bin/fsck_mfs
 ACPI=/service/acpi
 
-if [ X`sysenv arch` = Xi386 ]
+ARCH=`sysenv arch`
+if [ X$ARCH = Xi386 -o X$ARCH = Xx86_64 ]
 then	if [ -e $ACPI -a -n "`sysenv acpi`" ]
 	then
 		minix-service -c up $ACPI
@@ -89,7 +90,8 @@ fi
 
 echo "Root device name is $rootdevname"
 
-if ! sysenv cdproberoot >/dev/null
+# The boot ramdisk is already mounted as root; only check an external root.
+if ! sysenv cdproberoot >/dev/null && ! sysenv bootramdisk >/dev/null
 then
 	if [ -e $FSCK ]
 	then	$FSCK -p $rootdevname

@@ -594,7 +594,7 @@ void rw_super(int put)
   if (sb.s_log_zone_size < 0) fatal("zone size < block size");
   if (sb.s_max_size <= 0) {
 	printf("warning: invalid max file size %d\n", sb.s_max_size);
-  	sb.s_max_size = LONG_MAX;
+	sb.s_max_size = INT32_MAX;	/* LONG_MAX of the 32-bit ports */
   }
 }
 

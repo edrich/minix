@@ -49,6 +49,8 @@ struct utsname uts_val = {
 static char *uts_tbl[] = {
 #if defined(__i386__)
   "i386",		/* architecture */
+#elif defined(__x86_64__)
+  "x86_64",		/* architecture */
 #elif defined(__arm__)
   "evbarm",		/* architecture */
 #endif

@@ -38,6 +38,7 @@ SUBDIR+=	libvirtio
 .endif
 
 .if (${MACHINE_ARCH} == "x86_64")
+SUBDIR+=	libacpi
 SUBDIR+=	libvirtio
 .endif
 

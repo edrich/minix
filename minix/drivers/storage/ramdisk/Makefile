@@ -58,7 +58,7 @@ dir.umount:=	minix/commands/umount
 RAMDISK_SMALL=		1
 .endif
 
-.if ${MACHINE_ARCH} == "i386"
+.if ${MACHINE_ARCH} == "i386" || ${MACHINE_ARCH} == "x86_64"
 ETC+=			rs.single
 PROGRAMS+=		at_wini
 dir.at_wini:=	minix/drivers/storage/at_wini
@@ -193,6 +193,8 @@ proto.dev.mtree:
 	@echo ". type=dir uname=root gname=wheel mode=0755" \
 		>${.TARGET}.tmp && \
 	echo "./dev type=dir uname=root gname=wheel mode=0755" \
+		>>${.TARGET}.tmp && \
+	echo "./dev/input type=dir uname=root gname=wheel mode=0755" \
 		>>${.TARGET}.tmp && \
 	${NETBSDSRCDIR}/minix/commands/MAKEDEV/MAKEDEV.sh -m -r \
 		>> ${.TARGET}.tmp && mv ${.TARGET}.tmp ${.TARGET}

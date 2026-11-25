@@ -6,7 +6,7 @@
 		spwd.db ---600 0 0 etc/spwd.db
 		master.passwd ---600 0 0 etc/master.passwd
 		rc ---755 0 0 rc
-#if defined(__i386__)
+#if defined(__i386__) || defined(__x86_64__)
 		rs.single ---755 0 0 etc/rs.single
 #endif
 	$
