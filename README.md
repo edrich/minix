@@ -21,6 +21,10 @@ If Hyprland runs, most other desktop software can run too.
 > device and the Wayland libraries are done and tested. There is no
 > desktop yet. See [Roadmap](#roadmap).
 
+The amd64 port now boots the kernel, core servers and static ramdisk startup
+under QEMU. See [amd64 bring-up notes](docs/amd64.md) for the reviewed fixes,
+boot smoke tests and remaining work toward a complete 64-bit system.
+
 ---
 
 ## Mission
