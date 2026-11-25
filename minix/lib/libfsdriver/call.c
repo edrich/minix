@@ -238,7 +238,7 @@ builtin_peek(const struct fsdriver * __restrict fdp, ino_t ino_nr,
 		return ENOMEM;
 
 	data.endpt = SELF;
-	data.grant = (cp_grant_id_t)buf;
+	data.ptr = buf;	/* SELF: a local pointer, not a grant */
 	data.size = nbytes;
 
 	r = fdp->fdr_read(ino_nr, &data, nbytes, pos, FSC_READ);
