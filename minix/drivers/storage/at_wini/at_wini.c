@@ -1376,11 +1376,13 @@ static int setup_dma(
 			return 0;
 		}
 
+#ifdef _LP64
 		/* PRD entries hold 32-bit addresses; use PIO for buffers
 		 * above 4GB.
 		 */
 		if (user_phys + n > 0x100000000ULL)
 			return 0;
+#endif
 
 		/* vector is not allowed to cross a 64K boundary */
 		if (user_phys/0x10000 != (user_phys+n-1)/0x10000)

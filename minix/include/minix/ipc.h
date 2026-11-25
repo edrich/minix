@@ -2384,8 +2384,8 @@ typedef struct {
 	dev_t dev;
 	ino_t ino;
 	endpoint_t who;
-	u32_t vaddr;
-	u32_t len;
+	vir_bytes vaddr;	/* same size as u32_t on ILP32 */
+	vir_bytes len;
 	u32_t flags;
 	u32_t fd;
 	u16_t clearend;
