@@ -1,6 +1,7 @@
 #include "fs.h"
 #include <string.h>
 #include <assert.h>
+#include <sys/mman.h>
 
 static void *worker_main(void *arg);
 static void worker_sleep(void);
@@ -15,6 +16,8 @@ static int block_all;
 # define TH_STACKSIZE (64 * 1024)
 #elif defined(MKCOVERAGE)
 # define TH_STACKSIZE (40 * 1024)
+#elif defined(_LP64)
+# define TH_STACKSIZE (48 * 1024)	/* 64-bit frames are larger */
 #else
 # define TH_STACKSIZE (28 * 1024)
 #endif
@@ -28,12 +31,11 @@ void worker_init(void)
 {
 /* Initialize worker threads */
   struct worker_thread *wp;
+  void *stack;
   int i;
 
   if (mthread_attr_init(&tattr) != 0)
 	panic("failed to initialize attribute");
-  if (mthread_attr_setstacksize(&tattr, TH_STACKSIZE) != 0)
-	panic("couldn't set default thread stack size");
 
   pending = 0;
   busy = 0;
@@ -49,6 +51,17 @@ void worker_init(void)
 		panic("failed to initialize mutex");
 	if (cond_init(&wp->w_event, NULL) != 0)
 		panic("failed to initialize condition variable");
+	/* The stacks are allocated up front rather than on demand: VFS
+	 * must not depend on getting a page from VM in the middle of a call,
+	 * for instance while dumping the core of a process that ran the
+	 * system out of memory.
+	 */
+	stack = mmap(NULL, TH_STACKSIZE, PROT_READ | PROT_WRITE,
+		MAP_ANON | MAP_PRIVATE | MAP_PREALLOC, -1, 0);
+	if (stack == MAP_FAILED)
+		panic("unable to allocate thread stack");
+	if (mthread_attr_setstack(&tattr, stack, TH_STACKSIZE) != 0)
+		panic("couldn't set thread stack");
 	if (mthread_create(&wp->w_tid, &tattr, worker_main, (void *) wp) != 0)
 		panic("unable to start thread");
   }
