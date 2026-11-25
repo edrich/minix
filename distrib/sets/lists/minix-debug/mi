@@ -434,7 +434,6 @@
 ./usr/libdata/debug/usr/bin/strip.debug                 minix-debug     debug
 ./usr/libdata/debug/usr/bin/su.debug                    minix-debug     debug
 ./usr/libdata/debug/usr/bin/svrctl.debug                minix-debug     debug
-./usr/libdata/debug/usr/bin/swifi.debug                 minix-debug     debug
 ./usr/libdata/debug/usr/bin/synctree.debug              minix-debug     debug
 ./usr/libdata/debug/usr/bin/sz.debug                    minix-debug     debug
 ./usr/libdata/debug/usr/bin/tail.debug                  minix-debug     debug

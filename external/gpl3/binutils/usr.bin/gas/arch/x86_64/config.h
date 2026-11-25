@@ -276,19 +276,19 @@
 #define STRING_WITH_STRINGS 1
 
 /* Target alias. */
-#define TARGET_ALIAS "x86_64--netbsd"
+#define TARGET_ALIAS "x86_64-elf64-minix"
 
 /* Define as 1 if big endian. */
 /* #undef TARGET_BYTES_BIG_ENDIAN */
 
 /* Canonical target. */
-#define TARGET_CANONICAL "x86_64--netbsd"
+#define TARGET_CANONICAL "x86_64-elf64-minix"
 
 /* Target CPU. */
 #define TARGET_CPU "x86_64"
 
 /* Target OS. */
-#define TARGET_OS "netbsd"
+#define TARGET_OS "minix"
 
 /* Define if default target is PowerPC Solaris. */
 /* #undef TARGET_SOLARIS_COMMENT */
@@ -297,7 +297,7 @@
 /* #undef TARGET_SYMBIAN */
 
 /* Target vendor. */
-#define TARGET_VENDOR ""
+#define TARGET_VENDOR "elf64"
 
 /* Use b modifier when opening binary files? */
 /* #undef USE_BINARY_FOPEN */

@@ -30,6 +30,7 @@
 ./service/tsl2550                                       minix-base
 ./service/usbd                                          minix-base
 ./usr/bin/eepromread                                    minix-base
+./usr/bin/swifi                                         minix-base
 ./usr/lib/libc_vfp.a                                    minix-base      obsolete
 ./usr/lib/libc_vfp.so.0.0                               minix-base      obsolete
 ./usr/lib/libc_vfp.so.0                                 minix-base      obsolete

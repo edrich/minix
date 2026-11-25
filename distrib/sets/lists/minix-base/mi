@@ -574,7 +574,6 @@
 ./usr/bin/sum                                           minix-base
 ./usr/bin/svclog                                        minix-base      obsolete
 ./usr/bin/svrctl                                        minix-base
-./usr/bin/swifi                                         minix-base
 ./usr/bin/synctree                                      minix-base
 ./usr/bin/sz                                            minix-base
 ./usr/bin/tail                                          minix-base

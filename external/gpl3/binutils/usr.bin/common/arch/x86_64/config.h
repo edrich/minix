@@ -228,7 +228,7 @@
 #define STRING_WITH_STRINGS 1
 
 /* Configured target name. */
-#define TARGET "x86_64--netbsd"
+#define TARGET "x86_64-elf64-minix"
 
 /* Define to 1 if user symbol names have a leading underscore, 0 if not. */
 #define TARGET_PREPENDS_UNDERSCORE 0

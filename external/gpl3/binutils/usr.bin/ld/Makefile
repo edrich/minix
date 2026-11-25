@@ -98,7 +98,7 @@ e${f}.c: ${DIST}/ld/genscripts.sh ${.CURDIR}/Makefile stringify.sed
 		${G_target_alias} ${G_target_alias} ${G_target_alias} \
 		${G_EMUL} ${LIBDIR} yes ${G_enable_initfini_array}  ${f} "${G_target_alias}"
 
-.if ${BINUTILS_MACHINE_ARCH} == "x86_64" \
+.if (${BINUTILS_MACHINE_ARCH} == "x86_64" && !defined(__MINIX)) \
     || ${BINUTILS_MACHINE_ARCH} == "sparc64" \
     || !empty(BINUTILS_MACHINE_ARCH:Mmips64*)
 FILES+=		${f}.x ${f}.xbn ${f}.xn ${f}.xr ${f}.xu

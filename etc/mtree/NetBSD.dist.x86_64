@@ -4,5 +4,6 @@
 # MINIX: no libstdc++ multilib directories (libc++ is used):
 #./usr/include/g++/bits/i386
 #./usr/include/g++/bits/x86_64
-./usr/include/i386
+# MINIX: no i386 compat headers
+#./usr/include/i386
 ./usr/include/x86

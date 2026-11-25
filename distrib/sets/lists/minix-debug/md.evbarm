@@ -23,3 +23,4 @@
 ./usr/libdata/debug/service/tsl2550.debug               minix-debug     debug
 ./usr/libdata/debug/service/usbd.debug                  minix-debug     debug
 ./usr/libdata/debug/usr/bin/eepromread.debug            minix-debug     debug
+./usr/libdata/debug/usr/bin/swifi.debug                 minix-debug     debug
