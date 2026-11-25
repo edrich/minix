@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# x86_qemu.py - headless MINIX i386 QEMU test harness
+# x86_qemu.py - headless MINIX i386/amd64 QEMU test harness
 #
 # Boots minix_x86.img in QEMU via the multiboot path (kernel + modules from
 # the release staging dir), redirects the MINIX console to a serial unix
@@ -17,7 +17,8 @@
 #
 # Options:
 #   --image PATH      boot disk image        (default: minix_x86.img in repo root)
-#   --bootdir PATH    dir with kernel + mod* (default: ../obj.docker.i386 or ../obj.i386 destdir .temp)
+#   --arch ARCH       i386 (default) or amd64: QEMU binary, objdir, image
+#   --bootdir PATH    dir with kernel + mod* (default: ../obj.docker.<arch> or ../obj.<arch> destdir .temp)
 #   --payload DIR     directory whose contents are put on the ext2 test disk
 #   --cmd CMD         shell command to run in the guest (repeatable); each
 #                     command's exit status is checked
@@ -72,15 +73,21 @@ import tempfile
 import time
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# Docker-built objdir is canonical since the docker/ workflow; fall back to a
-# host build if that's what exists.
-for _cand in ("obj.docker.i386", "obj.i386"):
-    _p = os.path.normpath(os.path.join(REPO, "..", _cand))
-    if os.path.isdir(_p):
-        OBJ = _p
-        break
-else:
-    OBJ = os.path.normpath(os.path.join(REPO, "..", "obj.docker.i386"))
+# Per architecture: QEMU binary, default image name.
+ARCHES = {
+    "i386": ("qemu-system-i386", "minix_x86.img"),
+    "amd64": ("qemu-system-x86_64", "minix_amd64.img"),
+}
+
+
+def default_obj(arch):
+    """Docker-built objdir is canonical since the docker/ workflow; fall
+    back to a host build if that's what exists."""
+    for cand in (f"obj.docker.{arch}", f"obj.{arch}"):
+        p = os.path.normpath(os.path.join(REPO, "..", cand))
+        if os.path.isdir(p):
+            return p
+    return os.path.normpath(os.path.join(REPO, "..", f"obj.docker.{arch}"))
 
 GUEST_DRIVER = """\
 #!/bin/sh
@@ -150,7 +157,7 @@ class QemuMinix:
                       "-device", "virtio-blk-pci,drive=testdisk"]
 
         cmd = [
-            "qemu-system-i386",
+            ARCHES[a.arch][0],
             "-machine", "pc",
             "-m", "256",
             "-vga", "std",
@@ -500,10 +507,15 @@ class QemuMinix:
 def main():
     ap = argparse.ArgumentParser(
         prog="x86_qemu.py",
-        description="Headless MINIX i386 QEMU test harness (see header comment).")
-    ap.add_argument("--image", default=os.path.join(REPO, "minix_x86.img"))
+        description="Headless MINIX i386/amd64 QEMU test harness (see header comment).")
+    ap.add_argument("--arch", choices=sorted(ARCHES), default="i386",
+                    help="guest architecture (selects QEMU, objdir, image)")
+    ap.add_argument("--image",
+                    help="disk image (default: minix_x86.img, "
+                         "minix_amd64.img for --arch amd64)")
     ap.add_argument("--bootdir",
-                    default=os.path.join(OBJ, "destdir.i386", "boot", "minix", ".temp"))
+                    help="dir with kernel + mod* (default: the objdir's "
+                         "destdir.<arch>/boot/minix/.temp)")
     ap.add_argument("--payload")
     ap.add_argument("--cmd", action="append", default=[])
     ap.add_argument("--expect", action="append", default=[])
@@ -521,13 +533,19 @@ def main():
     ap.add_argument("--persist", action="store_true",
                     help="write guest changes to the image (default: snapshot)")
     args = ap.parse_args()
+    if args.image is None:
+        args.image = os.path.join(REPO, ARCHES[args.arch][1])
+    if args.bootdir is None:
+        args.bootdir = os.path.join(default_obj(args.arch),
+                                    f"destdir.{args.arch}", "boot", "minix",
+                                    ".temp")
     # qemu runs with cwd=bootdir, so paths it opens itself (the image,
     # monitor screendumps) must not stay relative to the caller's cwd.
     for attr in ("image", "bootdir", "payload", "screendump", "log"):
         if getattr(args, attr):
             setattr(args, attr, os.path.abspath(getattr(args, attr)))
 
-    for tool in ("qemu-system-i386", "mke2fs"):
+    for tool in (ARCHES[args.arch][0], "mke2fs"):
         if shutil.which(tool) is None:
             fail(f"{tool} not found in PATH")
     if not os.path.exists(args.image):

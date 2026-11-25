@@ -8,7 +8,13 @@ set -e
 
 : ${ARCH=i386}
 : ${OBJ=../obj.${ARCH}}
-: ${TOOLCHAIN_TRIPLET=i586-elf32-minix-}
+case ${ARCH} in
+amd64)	: ${TOOLCHAIN_TRIPLET=x86_64-elf64-minix-}
+	: ${IMG=minix_amd64.img}
+	QEMU=qemu-system-x86_64 ;;
+*)	: ${TOOLCHAIN_TRIPLET=i586-elf32-minix-}
+	QEMU=qemu-system-i386 ;;
+esac
 : ${BUILDSH=build.sh}
 
 : ${SETS="minix-base minix-comp minix-games minix-man minix-tests tests"}
@@ -122,15 +128,22 @@ else
        ${CROSS_TOOLS}/nbpartition -m ${IMG} ${BOOTXX_SECS} 81:${_ROOT_SIZE}* 81:${_USR_SIZE} 81:${_HOME_SIZE}
 fi
 
-${CROSS_TOOLS}/nbinstallboot -f -m ${ARCH} ${IMG} ${DESTDIR}/usr/mdec/bootxx_minixfs3
+if [ -f ${DESTDIR}/usr/mdec/bootxx_minixfs3 ]
+then
+	${CROSS_TOOLS}/nbinstallboot -f -m ${ARCH} ${IMG} ${DESTDIR}/usr/mdec/bootxx_minixfs3
+else
+	# amd64 has no boot loader of its own yet: boot the image with QEMU's
+	# -kernel/-initrd (see releasetools/x86_qemu.py --arch amd64).
+	echo "No boot block for ${ARCH}; the image is not bootable by itself."
+fi
 
 echo ""
 echo "Disk image at `pwd`/${IMG}"
 echo ""
 echo "To boot this image on kvm using the bootloader:"
-echo "qemu-system-i386 --enable-kvm -m 256 -hda `pwd`/${IMG}"
+echo "${QEMU} --enable-kvm -m 256 -hda `pwd`/${IMG}"
 echo ""
 echo "To boot this image on kvm:"
-echo "cd ${MODDIR} && qemu-system-i386 --enable-kvm -m 256M -kernel kernel -append \"rootdevname=c0d0p0\" -initrd \"${mods}\" -hda `pwd`/${IMG}"
+echo "cd ${MODDIR} && ${QEMU} --enable-kvm -m 256M -kernel kernel -append \"rootdevname=c0d0p0\" -initrd \"${mods}\" -hda `pwd`/${IMG}"
 echo "To boot this image on kvm with EFI (tianocore OVMF):"
 echo "qemu-system-i386 -L . -bios OVMF-i32.fd -m 256M -drive file=minix_x86.img,if=ide,format=raw"
