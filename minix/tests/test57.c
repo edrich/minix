@@ -22,9 +22,13 @@ volatile int remaining_invocations = 2, handler_level = 0;
 
 void check_context_loop(void);
 
+#if defined(__x86_64__)
+#define REGS 16	/* all general purpose registers, %rsp last */
+#else
 #define REGS 8	/* how many registers pusha and popa save. */
 
 #define ESP 3	/* where is esp saved? */
+#endif
 
 unsigned long newstate[REGS], origstate[REGS];
 
@@ -76,8 +80,10 @@ int main(int argc, char *argv[])
 
 		check_context_loop();
 
+#if !defined(__x86_64__)
 		/* correct 2nd esp for 'pusha' difference. */
 		newstate[ESP] += REGS*4;
+#endif
 
 		for(i = 0; i < REGS; i++) {
 #if 0

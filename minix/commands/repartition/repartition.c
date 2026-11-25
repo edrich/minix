@@ -100,7 +100,7 @@ char *finddev(dev_t device)
 #define DSETP	0
 #define DGETP	1
 
-int diocntl(dev_t device, int request, struct part_geom *entry)
+int diocntl(dev_t device, unsigned long request, struct part_geom *entry)
 /* Get or set the geometry of a device. */
 {
 	char *name;

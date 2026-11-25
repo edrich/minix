@@ -1,0 +1,11 @@
+#
+# Sorted using sort_set.pl in releasetools.
+# to add an entry simply add it at the end of the
+# file and run
+# ../../../../releasetools/sort_set.pl < mi > out
+# mv out mi
+#
+./usr/libdata/debug/usr/tests/minix-posix/test47.debug  minix-debug     debug
+./usr/libdata/debug/usr/tests/minix-posix/test51.debug  minix-debug     debug
+./usr/libdata/debug/usr/tests/minix-posix/test57.debug  minix-debug     debug
+./usr/libdata/debug/usr/tests/minix-posix/test62.debug  minix-debug     debug

@@ -237,6 +237,17 @@ int main(void)
   return 0;
 }
 
+/*
+ * Write data from TTY's own address space, on behalf of the kernel.
+ */
+static void
+kernel_write(tty_t *tp, char *buf, size_t size)
+{
+	tp->tty_outkbuf = buf;
+	do_write(tp->tty_minor, 0, KERNEL, GRANT_INVALID, size, CDEV_NONBLOCK,
+		0);
+}
+
 static void
 set_color(tty_t *tp, int color)
 {
@@ -244,8 +255,7 @@ set_color(tty_t *tp, int color)
 
 	buf[0] = '\033';
 	snprintf(&buf[1], sizeof(buf) - 1, "[1;%dm", color);
-	do_write(tp->tty_minor, 0, KERNEL, (cp_grant_id_t) buf, sizeof(buf),
-		CDEV_NONBLOCK, 0);
+	kernel_write(tp, buf, sizeof(buf));
 }
 
 static void
@@ -256,8 +266,7 @@ reset_color(tty_t *tp)
 #define SGR_COLOR_RESET	39
 	buf[0] = '\033';
 	snprintf(&buf[1], sizeof(buf) - 1, "[0;%dm", SGR_COLOR_RESET);
-	do_write(tp->tty_minor, 0, KERNEL, (cp_grant_id_t) buf, sizeof(buf),
-		CDEV_NONBLOCK, 0);
+	kernel_write(tp, buf, sizeof(buf));
 }
 
 tty_t *
@@ -429,9 +438,7 @@ do_new_kmess(void)
 
 		if (kernel_msg_color != 0)
 			set_color(tp, kernel_msg_color);
-		do_write(tp->tty_minor, 0, KERNEL,
-			(cp_grant_id_t) kernel_buf_copy, bytes,
-			CDEV_NONBLOCK, 0);
+		kernel_write(tp, kernel_buf_copy, bytes);
 		if (kernel_msg_color != 0)
 			reset_color(tp);
 		if (restore) {

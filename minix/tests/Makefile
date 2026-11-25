@@ -85,11 +85,11 @@ MINIX_TESTS= \
 
 FILES += t84_h_nonexec.sh
 
-.if ${MACHINE_ARCH} == "i386"
+.if ${MACHINE_ARCH} == "i386" || ${MACHINE_ARCH} == "x86_64"
 MINIX_TESTS+= \
                   47          51                57 \
    62
-.endif #  ${MACHINE_ARCH} == "i386"
+.endif #  ${MACHINE_ARCH} == "i386" || ${MACHINE_ARCH} == "x86_64"
 
 .for t in ${MINIX_TESTS}
 PROGS+= test${t}

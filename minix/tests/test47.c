@@ -18,12 +18,18 @@ int max_error = 4;
 
 static void signal_handler(int signum)
 {
+#if defined(__x86_64__)
+	/* The arguments are passed in registers; the frame can not be found
+	 * from the address of signum. */
+	printf("Signal %d\n", signum);
+#else
 	struct sigframe_sigcontext *sigframe;
 	
 	/* report signal */
 	sigframe = (struct sigframe_sigcontext *) ((char *) &signum - 
 		(char *) &((struct sigframe_sigcontext *) NULL)->sf_signum);
 	printf("Signal %d at 0x%x\n", signum, sigframe->sf_scp->sc_eip);
+#endif
 	
 	/* count as error */
 	e(0);

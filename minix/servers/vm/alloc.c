@@ -373,7 +373,12 @@ void memstats(int *nodes, int *pages, int *largest)
 	}
 }
 
-static int findbit(int low, int startscan, int pages, int memflags, int *len)
+/* Returns the first page of a free range, or NO_MEM. The return type must
+ * be wide enough to hold NO_MEM unchanged: as an int it would come back as
+ * -2, which is not NO_MEM once widened to a 64-bit phys_bytes.
+ */
+static phys_bytes findbit(int low, int startscan, int pages, int memflags,
+	int *len)
 {
 	int run_length = 0, i;
 	int freerange_start = startscan;
