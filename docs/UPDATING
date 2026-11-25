@@ -1,4 +1,10 @@
 20261114:
+	PM/VFS exec messages now carry the ps_strings address in a vir_bytes
+	field, avoiding pointer truncation on amd64.  Rebuild and update PM
+	and VFS together, including the boot image, on all architectures.
+	The libc exec interface and total IPC message size are unchanged.
+
+20261114:
 	libc: write(2) and read(2) on an eventfd follow Linux (a write adds
 	to the counter; it used to be lost unless eventfd_write() was
 	used), and epoll_pwait() returns EINTR when a signal that its mask
