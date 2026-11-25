@@ -1,89 +1,108 @@
-# MINIX amd64 bring-up
+# MINIX amd64 port
 
-Status as of 2026-11-14: the long-mode kernel, VM, core servers and static
-ramdisk programs boot through `/etc/rc` under QEMU TCG. This is not yet a
-complete installed amd64 system.
+Status as of 2026-11-25: a complete amd64 (x86_64, LP64) system builds with
+`build.sh`-style `release`, packs into a disk image, boots under QEMU (KVM or
+TCG) from that disk to a multiuser login on serial, and passes 111 of the
+113 minix-posix tests (details below).
 
-## Review and fixes
+## Design in brief
 
-The review covered the recent amd64 commits and pending changes, focusing on
-the boot path, IPC pointer widths, VM mappings, and ramdisk service startup.
+* Triple `x86_64-elf64-minix`, `MACHINE=amd64`, `MACHINE_ARCH=x86_64`; the
+  in-tree clang 3.6 and binutils 2.23 have an x86_64 MINIX target.
+* Messages are 128 bytes on LP64 (8-byte header, 120-byte payload) and 64
+  bytes on ILP32; no message type was repacked
+  (`minix/include/minix/ipcconst.h`).
+* Kernel (`minix/kernel/arch/x86_64`): linked in the top 2GB and repackaged
+  as ELF32 for Multiboot loaders; a 32-bit stub enters long mode.  All
+  physical memory is direct-mapped in the kernel half, which replaces the
+  i386 temporary mapping windows.  Traps use software interrupts only; PIC
+  and PIT, single CPU.  Contexts that would return to a noncanonical address
+  become SIGSEGV; `sigreturn` validates the context before using it.
+* VM (`minix/servers/vm/arch/x86_64/pagetable_x86_64.c`): 4-level tables
+  behind the existing `pt_*` interface, using a direct map of physical
+  memory that the kernel gives VM.
+* Userland is static by default as on i386; `ld.elf_so` works for the
+  dynamically linked tests.  No TLS, as on i386.
 
-* The first recorded boot failed at VFS root initialization because the memory
-  driver contained an empty ramdisk. Newly enabled driver directories had not
-  had their object directories created. Their binaries were built in the
-  source tree, while the ramdisk Makefile expected them in the object tree.
-  Run `nbmake-amd64 obj` in newly enabled directories before `dependall`.
-* PM/VFS sent `ps_strings` through `m7_i5`, truncating the amd64 stack address
-  to 32 bits. `/bin/sh` faulted at `0xfffffffffffffff0` in its startup code.
-  Both directions now use the full-width `m7_v1` field, taken from message
-  padding. Existing fields keep their offsets and total message size stays
-  unchanged. **PM and VFS must be rebuilt and deployed together on all
-  architectures.** The libc exec interface is unchanged.
-* ProcFS now exposes `/proc/pci` and `/proc/cpuinfo` on amd64. Missing PCI
-  enumeration previously prevented the ramdisk script from discovering a
-  virtio root device.
-* Ramdisk-only startup skips fsck of the already mounted root. Previously it
-  attempted to open the nonexistent relative path `imgrd`.
-* PM's legacy uname table now includes the amd64 architecture entry. Without
-  it, every subsequent field was at the wrong index.
+## Test results (2026-11-25)
 
-The existing pending LP64 fixes, driver build selections and ramdisk additions
-were retained. The untracked driver binaries in the source tree are build
-artifacts, not files to commit.
+minix-posix suite on amd64 (QEMU/KVM, 256MB): **111 passed, 2 failed**.
+
+* `isofs` also fails on i386 (baseline).
+* `test101` runs out of memory ("anon_pagefault: out of memory"): not yet
+  investigated; likely the larger 64-bit footprint in 256MB.
+* test64's out-of-memory messages are expected, as on i386.
+
+The last full i386 run (112 passed, only `isofs` failed) predates the most
+recent shared changes (u64 helpers, VFS worker stacks, libfsdriver peek,
+test66); rerun it before relying on them.
 
 ## Build and test
 
-Build inside `docker/dev.sh`. The existing object trees are
-`../obj.docker.amd64` and `../obj.docker.i386`. Use the matching
-`tooldir.*/bin/nbmake-amd64` or `nbmake-i386` wrapper; if several tool directories
-exist, select the current one explicitly.
-
-After installing headers (`-C minix/include includes`), build the affected
-components with `obj` followed by `dependall`. For a new object tree, first
-build the toolchain, headers and libraries using `build.sh`; the smoke runner
-does not build dependencies. The ramdisk Makefile's `PROGRAMS` and `dir.*`
-variables list its prerequisites. Build those before the ramdisk, then build
-the memory driver to embed the new image. Rebuild PM and VFS together.
-
-The boot modules used by the smoke runner are listed in
-`releasetools/x86_boot_smoke.py`. For amd64, `kernel` is the ELF32 container
-required by the multiboot loader; `kernel.elf64` retains the long-mode image
-and symbols. The user-space modules must all be ELF64.
+All builds run in `docker/dev.sh`.  The object tree is `../obj.docker.amd64`.
+Use that tree's `tooldir.*/bin/nbmake-amd64` (the tool directory name
+contains the host kernel version: after a host kernel update build.sh would
+build a new one, so name the existing one explicitly).
 
 ```sh
-docker/dev.sh python3 releasetools/x86_boot_smoke.py \
-    --obj ../obj.docker.amd64 --log .harness/amd64-smoke.log
-docker/dev.sh python3 releasetools/x86_boot_smoke.py \
-    --obj ../obj.docker.amd64 --memory 5120 --timeout 90 \
-    --log .harness/amd64-smoke-5g.log
-docker/dev.sh python3 releasetools/x86_boot_smoke.py \
-    --arch i386 --obj ../obj.docker.i386 --log .harness/i386-smoke.log
+# first time: the cross toolchain
+docker/dev.sh sh build.sh -m amd64 -O ../obj.docker.amd64 -U -u tools
+
+# whole system + release sets + boot modules, then the disk image
+T=$(realpath ../obj.docker.amd64/tooldir.*/bin)    # exactly one tooldir
+docker/dev.sh $T/nbmake-amd64 -j12 build
+docker/dev.sh $T/nbmake-amd64 -j12 release
+docker/dev.sh env ARCH=amd64 OBJ=../obj.docker.amd64 CROSS_TOOLS=$T \
+    CREATE_IMAGE_ONLY=1 ./releasetools/x86_hdimage.sh   # -> minix_amd64.img
+
+# boot from the image, run commands
+docker/dev.sh ./releasetools/x86_qemu.py --arch amd64 --raw \
+    --cmd 'uname -mp' --expect amd64
+
+# full regression suite (about 25 minutes)
+docker/dev.sh ./releasetools/x86_qemu.py --arch amd64 --raw --timeout 3600 \
+    --cmd 'cd /usr/tests/minix-posix && ./run'
+
+# ramdisk-only boot smoke test (no disk), optionally with test programs
+docker/dev.sh python3 releasetools/x86_boot_smoke.py --obj ../obj.docker.amd64 \
+    --log .harness/amd64-smoke.log
 ```
 
-All three configurations passed after the exec and ramdisk fixes. The runner
-requires VFS startup, the ramdisk root announcement, and the final ProcFS
-mount; guest panics, segmentation faults and startup errors fail the gate.
-It attaches no disks and terminates its QEMU process on success or failure.
-Booting with 5 GiB is not a comprehensive high-memory stress test.
+There is no amd64 boot loader yet: the image is booted with QEMU's
+`-kernel`/`-initrd` from `destdir.amd64/boot/minix/.temp` (the harness does
+this).  `kernel` there is the ELF32 container; `minix/kernel/kernel.elf64`
+in the object tree has the symbols.
 
-The minimal boot ramdisk has no login environment or utmpx database. The
-`init: can't add utmpx record` warning after startup is expected for this
-image. Do not reserve COM1 with `cttyline=0` while also using `console=tty00`;
-TTY then refuses to initialize that serial line.
+## LP64 bug classes found so far
+
+Most porting bugs fell into a few patterns, worth checking for in code that
+has not been exercised on amd64 yet:
+
+* Addresses or sizes in 32-bit message fields or `int`/`u32_t` variables
+  (exec `ps_strings`, the VFS-to-VM file mapping request, ioctl requests
+  with bit 31 set kept in an `int`).
+* Pointers smuggled through a 32-bit `cp_grant_id_t` for requests from SELF
+  (TTY kernel messages, libblockdriver partition reads in ahci, virtio_blk
+  and vnd, libfsdriver's peek emulation).  Use the `iovec_t`/`ptr` view.
+* `int` functions returning sentinels such as `NO_MEM`, which do not survive
+  widening to a 64-bit type (VM's `findbit`).
+* Hardware layouts declared with `phys_bytes` (at_wini PRD entries).
+* `long` used to mean "32 bits" (`ex64lo`/`ex64hi`/`make64`, test66).
+* NetBSD x86_64 assembly calling functions that are C on MINIX without an
+  ABI-aligned stack (`setjmp` -> `sigprocmask`), and compiler-generated SSE
+  accesses to device memory (VGA text memory under KVM).
+* Stack and slab sizes tuned for 32-bit objects (VFS worker stacks, VM
+  slab size range, VM's VFS request state).
 
 ## Remaining work
 
-* Build and package a complete amd64 root filesystem, boot it with the new
-  kernel and servers, and run the MINIX regression suite. The existing
-  `minix_x86.img` is an i386 image and was not replaced.
-* Audit and test malformed signal/ptrace contexts and return-to-user faults.
-  `restore_user_context_int` uses `iretq`; the exception handler has recovery
-  for user-copy and FPU faults but no equivalent recovery around that return.
-  Noncanonical saved instruction/stack pointers are a specific concern from
-  static review, not covered by the boot gate.
-* Exercise signal/FPU state preservation, copy-on-write, mmap, high-address
-  grants, disk I/O and dynamic linking with dedicated guest tests.
-* Resolve format warnings and remove the broad amd64 `-Wno-error=format`
-  exception. It currently allows warnings beyond the known long/long-long
-  formatting mismatches.
+* Memory above 4GB: drivers with 32-bit DMA (at_wini's own buffers, 32-bit
+  PCI BARs, `alloc_contig` has no "below 4GB" flag) and VM's bitmap are
+  only sized/checked for the 64GB direct map; not tested with large RAM.
+* No `syscall`/`sysret` fast path, APIC, ACPI, SMP, NX.
+* No amd64 boot loader; the disk image is not bootable by itself.
+* Network drivers, audio, video and other i386 drivers are not enabled for
+  x86_64 yet; `minix-ports` has no x86_64 toolchain.
+* The amd64 build makes format warnings non-fatal (`-Wno-error=format` in
+  `share/mk/bsd.sys.mk`); most are long vs. long long mismatches, but the
+  exception hides real ones too.
