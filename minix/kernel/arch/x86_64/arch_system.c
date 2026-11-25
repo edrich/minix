@@ -603,6 +603,20 @@ void fpu_sigcontext(struct proc *pr, struct sigframe_sigcontext *fr, struct sigc
 
 reg_t arch_get_sp(struct proc *p) { return p->p_reg.sp; }
 
+/*===========================================================================*
+ *				arch_user_context_ok			     *
+ *===========================================================================*/
+int arch_user_context_ok(const struct proc *p)
+{
+/* Can the kernel return to this user context? The instruction and stack
+ * pointers must lie in the user half of the address space: anything else
+ * is either not canonical, which makes IRETQ fault in the kernel, or kernel
+ * space. The segment selectors are not under the control of the process.
+ */
+	return p->p_reg.pc < X86_64_VM_USER_TOP &&
+		p->p_reg.sp < X86_64_VM_USER_TOP;
+}
+
 #if !CONFIG_OXPCIE
 static void ser_init(void)
 {

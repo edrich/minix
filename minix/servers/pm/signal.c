@@ -182,13 +182,19 @@ int do_sigreturn(void)
 
   assert(!(mp->mp_flags & (PROC_STOPPED | VFS_CALL | UNPAUSED | EVENT_CALL)));
 
+  /* Restore the context first: if the kernel refuses it, the process
+   * carries on in the signal handler, with the signal mask unchanged.
+   */
+  r = sys_sigreturn(who_e, (struct sigmsg *)m_in.m_lc_pm_sigset.ctx);
+  if (r != OK)
+	return(r);
+
   mp->mp_sigmask = m_in.m_lc_pm_sigset.set;
   sigdelset(&mp->mp_sigmask, SIGKILL);
   sigdelset(&mp->mp_sigmask, SIGSTOP);
 
-  r = sys_sigreturn(who_e, (struct sigmsg *)m_in.m_lc_pm_sigset.ctx);
   check_pending(mp);
-  return(r);
+  return(OK);
 }
 
 /*===========================================================================*

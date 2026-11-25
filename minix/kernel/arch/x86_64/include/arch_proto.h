@@ -150,6 +150,7 @@ struct tss_s {		/* long mode task state segment */
 } __attribute__((packed));
 
 void enable_iop(struct proc *pp);
+int arch_user_context_ok(const struct proc *p);
 u32_t read_cs(void);
 u32_t read_ds(void);
 u32_t read_ss(void);

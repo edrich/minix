@@ -420,6 +420,17 @@ check_misc_flags:
 	 */
 	if (!p->p_cpu_time_left)
 		proc_no_time(p);
+
+#if defined(__x86_64__)
+	/* The context a process returns to may have been set by the process
+	 * itself (its stack pointer, at any trap) or through sigreturn and
+	 * ptrace. Returning to a noncanonical instruction pointer would fault
+	 * in the kernel, on the IRETQ. Treat such a context as a fault of
+	 * the process instead.
+	 */
+	if (!arch_user_context_ok(p))
+		cause_sig(proc_nr(p), SIGSEGV);
+#endif
 	/*
 	 * After handling the misc flags the selected process might not be
 	 * runnable anymore. We have to checkit and schedule another one

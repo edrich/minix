@@ -35,6 +35,21 @@ int do_sigreturn(struct proc * caller, message * m_ptr)
 		 (vir_bytes)&sc, sizeof(struct sigcontext))) != OK)
 	return r;
 
+  /* The context comes from the process; it may have been damaged or made
+   * up. Check what the kernel relies on before changing anything, so that
+   * the process can carry on as it was if the context is refused.
+   */
+  if (sc.sc_magic != SC_MAGIC) return EINVAL;
+#if defined(__i386__)
+  if (sc.trap_style < KTS_INT_HARD || sc.trap_style > KTS_SYSCALL)
+	return EINVAL;
+#elif defined(__x86_64__)
+  /* Only the software interrupt trap styles exist here. */
+  if (sc.trap_style != KTS_INT_HARD && sc.trap_style != KTS_INT_ORIG &&
+      sc.trap_style != KTS_INT_UM && sc.trap_style != KTS_FULLCONTEXT)
+	return EINVAL;
+#endif
+
 #if defined(__i386__)
   /* Restore user bits of psw from sc, maintain system bits from proc. */
   sc.sc_eflags  =  (sc.sc_eflags & X86_FLAGS_USER) |
@@ -108,7 +123,6 @@ int do_sigreturn(struct proc * caller, message * m_ptr)
   /* Restore the registers. */
   arch_proc_setcontext(rp, &rp->p_reg, 1, sc.trap_style);
 
-  if(sc.sc_magic != SC_MAGIC) { printf("kernel sigreturn: corrupt signal context\n"); }
 
 #if defined(__i386__) || defined(__x86_64__)
   if (sc.sc_flags & MF_FPU_INITIALIZED)
