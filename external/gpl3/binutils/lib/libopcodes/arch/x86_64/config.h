@@ -14,7 +14,9 @@
 
 /* Define to 1 if translation of program messages to the user's native
    language is requested. */
+#if !defined(__minix)
 #define ENABLE_NLS 1
+#endif /* !defined(__minix) */
 
 /* Define to 1 if you have the declaration of `basename', and to 0 if you
    don't. */

@@ -850,7 +850,9 @@ namespace std
 /* #undef _GLIBCXX_HAVE_SYMVER_SYMBOL_RENAMING_RUNTIME_SUPPORT */
 
 /* Define to 1 if you have the <sys/filio.h> header file. */
+#if !defined(__minix)
 #define _GLIBCXX_HAVE_SYS_FILIO_H 1
+#endif /* !defined(__minix) */
 
 /* Define to 1 if you have the <sys/ioctl.h> header file. */
 #define _GLIBCXX_HAVE_SYS_IOCTL_H 1
@@ -943,7 +945,9 @@ namespace std
 /* #undef _GLIBCXX_HAVE_WIN32_SLEEP */
 
 /* Define if writev is available in <sys/uio.h>. */
+#if !defined(__minix)
 #define _GLIBCXX_HAVE_WRITEV 1
+#endif /* !defined(__minix) */
 
 /* Define to 1 if you have the `_acosf' function. */
 /* #undef _GLIBCXX_HAVE__ACOSF */
@@ -1194,7 +1198,9 @@ namespace std
 #define _GLIBCXX_FULLY_DYNAMIC_STRING 0
 
 /* Define if gthreads library is available. */
+#if !defined(__minix)
 #define _GLIBCXX_HAS_GTHREADS 1
+#endif /* !defined(__minix) */
 
 /* Define to 1 if a full hosted library is built, or 0 if freestanding. */
 #define _GLIBCXX_HOSTED 1

@@ -211,6 +211,7 @@ _rtld_relocate_nonplt_objects(Obj_Entry *obj)
 			    (void *)*where64));
        			break;
 
+#if !defined(__minix) /* no TLS support, see <machine/types.h> */
 		case R_TYPE(TPOFF64):
 			def = _rtld_find_symdef(symnum, obj, &defobj, false);
 			if (def == NULL)
@@ -254,6 +255,8 @@ _rtld_relocate_nonplt_objects(Obj_Entry *obj)
 			    obj->path, (void *)*where64));
 
 			break;
+
+#endif /* !defined(__minix) */
 
 		case R_TYPE(COPY):
 			rdbg(("COPY"));

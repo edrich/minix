@@ -7,7 +7,9 @@
 
 /* Define to 1 if translation of program messages to the user's native
    language is requested. */
+#if !defined(__minix)
 #define ENABLE_NLS 1
+#endif /* !defined(__minix) */
 
 /* Is the prototype for getopt in <unistd.h> in the expected format? */
 #define HAVE_DECL_GETOPT 1

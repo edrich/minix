@@ -24,7 +24,9 @@
 
 /* Define to 1 if translation of program messages to the user's native
    language is requested. */
+#if !defined(__minix)
 #define ENABLE_NLS 1
+#endif /* !defined(__minix) */
 
 /* Define if you want to workaround valgrind (a memory checker) warnings about
    possible memory leaks because of libcpp use of interior pointers. */

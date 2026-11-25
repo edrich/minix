@@ -79,7 +79,9 @@
 #define HAVE_SYS_TYPES_H 1
 
 /* Define to 1 if the target supports thread-local storage. */
+#if !defined(__minix)
 #define HAVE_TLS 1
+#endif /* !defined(__minix) */
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1

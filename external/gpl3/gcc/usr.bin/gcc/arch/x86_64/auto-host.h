@@ -133,7 +133,9 @@
 /* Define to 1 if translation of program messages to the user's native
    language is requested. */
 #ifndef USED_FOR_TARGET
+#if !defined(__minix)
 #define ENABLE_NLS 1
+#endif /* !defined(__minix) */
 #endif
 
 
@@ -516,7 +518,9 @@
 
 /* Define if your assembler and linker support thread-local storage. */
 #ifndef USED_FOR_TARGET
+#if !defined(__minix)
 #define HAVE_AS_TLS 1
+#endif /* !defined(__minix) */
 #endif
 
 
@@ -791,7 +795,9 @@
 /* Define to 1 if we found a declaration for 'madvise', otherwise define to 0.
    */
 #ifndef USED_FOR_TARGET
+#if !defined(__minix)
 #define HAVE_DECL_MADVISE 1
+#endif /* !defined(__minix) */
 #endif
 
 
@@ -839,7 +845,9 @@
 /* Define to 1 if we found a declaration for 'sigaltstack', otherwise define
    to 0. */
 #ifndef USED_FOR_TARGET
+#if !defined(__minix)
 #define HAVE_DECL_SIGALTSTACK 1
+#endif /* !defined(__minix) */
 #endif
 
 
@@ -1333,7 +1341,9 @@
 
 /* Define to 1 if you have the `madvise' function. */
 #ifndef USED_FOR_TARGET
+#if !defined(__minix)
 #define HAVE_MADVISE 1
+#endif /* !defined(__minix) */
 #endif
 
 

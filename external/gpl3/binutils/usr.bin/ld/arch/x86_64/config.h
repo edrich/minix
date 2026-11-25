@@ -14,7 +14,9 @@
 
 /* Define to 1 if translation of program messages to the user's native
    language is requested. */
+#if !defined(__minix)
 #define ENABLE_NLS 1
+#endif /* !defined(__minix) */
 
 /* Additional extension a shared object might have. */
 /* #undef EXTRA_SHLIB_EXTENSION */
@@ -80,13 +82,17 @@
 #define HAVE_INTTYPES_H 1
 
 /* Define if your <locale.h> file defines LC_MESSAGES. */
+#if !defined(__minix)
 #define HAVE_LC_MESSAGES 1
+#endif /* !defined(__minix) */
 
 /* Define to 1 if you have the <limits.h> header file. */
 #define HAVE_LIMITS_H 1
 
 /* Define to 1 if you have the <locale.h> header file. */
+#if !defined(__minix)
 #define HAVE_LOCALE_H 1
+#endif /* !defined(__minix) */
 
 /* Define to 1 if you have the `lseek' function. */
 #define HAVE_LSEEK 1
@@ -110,7 +116,9 @@
 #define HAVE_SBRK 1
 
 /* Define to 1 if you have the `setlocale' function. */
+#if !defined(__minix)
 #define HAVE_SETLOCALE 1
+#endif /* !defined(__minix) */
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #define HAVE_STDINT_H 1

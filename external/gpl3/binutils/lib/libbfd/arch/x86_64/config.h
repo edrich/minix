@@ -17,7 +17,9 @@
 
 /* Define to 1 if translation of program messages to the user's native
    language is requested. */
+#if !defined(__minix)
 #define ENABLE_NLS 1
+#endif /* !defined(__minix) */
 
 /* Define to 1 if you have the <alloca.h> header file. */
 /* #undef HAVE_ALLOCA_H */
@@ -139,7 +141,9 @@
 /* #undef HAVE_LWPXSTATUS_T */
 
 /* Define to 1 if you have the `madvise' function. */
+#if !defined(__minix)
 #define HAVE_MADVISE 1
+#endif /* !defined(__minix) */
 
 /* Define to 1 if you have the <memory.h> header file. */
 #define HAVE_MEMORY_H 1
@@ -148,7 +152,9 @@
 #define HAVE_MMAP 1
 
 /* Define to 1 if you have the `mprotect' function. */
+#if !defined(__minix)
 #define HAVE_MPROTECT 1
+#endif /* !defined(__minix) */
 
 /* Define to 1 if you have the <ndir.h> header file, and it defines `DIR'. */
 /* #undef HAVE_NDIR_H */

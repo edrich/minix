@@ -25,7 +25,9 @@
 
 /* Define to 1 if translation of program messages to the user's native
    language is requested. */
+#if !defined(__minix)
 #define ENABLE_NLS 1
+#endif /* !defined(__minix) */
 
 /* Suffix used for executables, if any. */
 #define EXECUTABLE_SUFFIX ""
@@ -98,13 +100,17 @@
 #define HAVE_INTTYPES_H 1
 
 /* Define if your <locale.h> file defines LC_MESSAGES. */
+#if !defined(__minix)
 #define HAVE_LC_MESSAGES 1
+#endif /* !defined(__minix) */
 
 /* Define to 1 if you have the <limits.h> header file. */
 #define HAVE_LIMITS_H 1
 
 /* Define to 1 if you have the <locale.h> header file. */
+#if !defined(__minix)
 #define HAVE_LOCALE_H 1
+#endif /* !defined(__minix) */
 
 /* Define if mbstate_t exists in wchar.h. */
 #define HAVE_MBSTATE_T 1
@@ -122,7 +128,9 @@
 #define HAVE_SBRK 1
 
 /* Define to 1 if you have the `setlocale' function. */
+#if !defined(__minix)
 #define HAVE_SETLOCALE 1
+#endif /* !defined(__minix) */
 
 /* Define to 1 if you have the `setmode' function. */
 #define HAVE_SETMODE 1
@@ -167,7 +175,9 @@
 #define HAVE_UNISTD_H 1
 
 /* Define to 1 if you have the `utimes' function. */
+#if !defined(__minix)
 #define HAVE_UTIMES 1
+#endif /* !defined(__minix) */
 
 /* Define to 1 if you have the <wchar.h> header file. */
 #define HAVE_WCHAR_H 1
