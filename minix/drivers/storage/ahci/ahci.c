@@ -1085,8 +1085,10 @@ static int setup_prdt(struct port_state *ps, endpoint_t endpt,
 	for (i = 0; i < nr_req && size > 0; i++) {
 		bytes = MIN(iovec[i].iov_size, size);
 
+		/* For SELF, the I/O vector holds addresses (an iovec_t)
+		 * rather than grants: read the full-width address. */
 		if (endpt == SELF)
-			vvec[i].vv_addr = (vir_bytes) iovec[i].iov_grant;
+			vvec[i].vv_addr = ((iovec_t *) iovec)[i].iov_addr;
 		else
 			vvec[i].vv_grant = iovec[i].iov_grant;
 

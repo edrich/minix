@@ -221,8 +221,10 @@ prepare_vir_vec(endpoint_t endpt, struct vumap_vir *vir, iovec_s_t *iv,
 			return EINVAL;
 		}
 
+		/* For SELF, the I/O vector holds addresses (an iovec_t)
+		 * rather than grants: read the full-width address. */
 		if (endpt == SELF)
-			vir[i].vv_addr = (vir_bytes)iv[i].iov_grant;
+			vir[i].vv_addr = ((iovec_t *) iv)[i].iov_addr;
 		else
 			vir[i].vv_grant = iv[i].iov_grant;
 

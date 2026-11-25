@@ -144,7 +144,9 @@ vnd_copy(iovec_s_t *iov, size_t iov_off, size_t bytes, endpoint_t endpt,
 		chunk = MIN(bytes - off, iov->iov_size - iov_off);
 
 		if (endpt == SELF) {
-			ptr = (char *)(vir_bytes) iov->iov_grant + iov_off;
+			/* The I/O vector holds addresses (an iovec_t) rather
+			 * than grants: read the full-width address. */
+			ptr = (char *) ((iovec_t *) iov)->iov_addr + iov_off;
 
 			if (do_write)
 				memcpy(&state.buf[off], ptr, chunk);
