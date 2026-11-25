@@ -131,6 +131,17 @@ void slabfree(void *mem, int bytes);
 void slabstats(void);
 void slab_sanitycheck(const char *file, int line);
 #define SLABALLOC(var) (var = slaballoc(sizeof(*var)))
+
+/* Object sizes slaballoc() supports: SLAB_MINSIZE to SLAB_MAXSIZE bytes.
+ * Some objects embed a message, which is twice as big on LP64.
+ */
+#ifdef _LP64
+#define SLABSIZES 300
+#else
+#define SLABSIZES 200
+#endif
+#define SLAB_MINSIZE 8
+#define SLAB_MAXSIZE (SLABSIZES-1+SLAB_MINSIZE)
 #define SLABFREE(ptr) do { slabfree(ptr, sizeof(*(ptr))); (ptr) = NULL; } while(0)
 #if SANITYCHECKS
 

@@ -68,10 +68,18 @@ ENTRY(__setjmp14)
 	xorl	%edi,%edi
 	xorq	%rsi,%rsi
 
+#if defined(__minix)
+	/* __sigprocmask14 is a C function on MINIX: call it with the stack
+	 * aligned as the ABI requires. */
+	subq	$8,%rsp
+#endif
 #ifdef __PIC__
 	call	PIC_PLT(_C_LABEL(__sigprocmask14))
 #else
 	call	_C_LABEL(__sigprocmask14)
+#endif
+#if defined(__minix)
+	addq	$8,%rsp
 #endif
 2:	xorl	%eax,%eax
 	ret

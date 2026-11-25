@@ -139,9 +139,12 @@ none		/dev/pts	ptyfs	rw,rslabel=ptyfs	0	0
 END_FSTAB
 	add_file_spec "etc/fstab" extra.fstab
 
-	# Add boot monitor
-	cp ${DESTDIR}/usr/mdec/boot_monitor ${ROOT_DIR}/boot_monitor
-	add_file_spec "boot_monitor" extra.boot
+	# Add boot monitor, if this architecture has one (amd64 does not yet)
+	if [ -f ${DESTDIR}/usr/mdec/boot_monitor ]
+	then
+		cp ${DESTDIR}/usr/mdec/boot_monitor ${ROOT_DIR}/boot_monitor
+		add_file_spec "boot_monitor" extra.boot
+	fi
 }
 
 #

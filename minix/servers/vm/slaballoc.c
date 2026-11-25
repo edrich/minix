@@ -26,7 +26,6 @@
 #include "util.h"
 #include "sanitycheck.h"
 
-#define SLABSIZES 200
 
 #define ITEMSPERPAGE(bytes) (int)(DATABYTES / (bytes))
 
@@ -72,8 +71,8 @@
 
 #define OBJALIGN	8
 
-#define MINSIZE 8
-#define MAXSIZE (SLABSIZES-1+MINSIZE)
+#define MINSIZE SLAB_MINSIZE
+#define MAXSIZE SLAB_MAXSIZE
 #define USEELEMENTS (1+(VM_PAGE_SIZE/MINSIZE/8))
 
 static int pages = 0;

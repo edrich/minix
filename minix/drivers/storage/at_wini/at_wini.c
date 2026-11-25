@@ -94,9 +94,9 @@ static phys_bytes dma_buf_phys;
 
 #define N_PRDTE	1024	/* Should be enough for large requests */
 
-struct prdte
+struct prdte		/* hardware layout: 8 bytes */
 {
-	phys_bytes prdte_base;
+	u32_t prdte_base;
 	u16_t prdte_count;
 	u8_t prdte_reserved;
 	u8_t prdte_flags;
@@ -1375,6 +1375,12 @@ static int setup_dma(
 			printf("setup_dma: user buffer is not aligned\n");
 			return 0;
 		}
+
+		/* PRD entries hold 32-bit addresses; use PIO for buffers
+		 * above 4GB.
+		 */
+		if (user_phys + n > 0x100000000ULL)
+			return 0;
 
 		/* vector is not allowed to cross a 64K boundary */
 		if (user_phys/0x10000 != (user_phys+n-1)/0x10000)

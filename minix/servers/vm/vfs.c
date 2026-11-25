@@ -28,7 +28,14 @@
 #include "region.h"
 #include "sanitycheck.h"
 
+/* Room for the caller's state; it holds pointers and sizes, which are
+ * twice as big on LP64.
+ */
+#ifdef _LP64
+#define STATELEN 128
+#else
 #define STATELEN 70
+#endif
 
 static struct vfs_request_node {
 	message			reqmsg;
@@ -39,6 +46,8 @@ static struct vfs_request_node {
 	vfs_callback_t		callback;
 	struct vfs_request_node	*next;
 } *first_queued, *active;
+
+__CTASSERT(sizeof(struct vfs_request_node) <= SLAB_MAXSIZE);
 
 static void activate(void)
 {
