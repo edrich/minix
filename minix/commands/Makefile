@@ -22,7 +22,7 @@ SUBDIR=	at backup \
 	remsync \
 	rotate setup \
 	slip spell sprofalyze sprofdiff srccrc \
-	svrctl swifi synctree sysenv \
+	svrctl synctree sysenv \
 	term termcap tget \
 	truncate umount \
 	update version vol \
@@ -32,5 +32,10 @@ SUBDIR=	at backup \
 	atnormalize dosread fdisk loadfont \
 	autopart part partition playwave  \
 	recwave repartition screendump
+
+# swifi injects faults by rewriting i386 instructions.
+.if ${MACHINE_ARCH} != "x86_64"
+SUBDIR+=	swifi
+.endif
 
 .include <bsd.subdir.mk>

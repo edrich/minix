@@ -315,7 +315,7 @@ static char *p_rts_flags_str(int flags)
 /*===========================================================================*
  *				proctab_dmp    				     *
  *===========================================================================*/
-#if defined(__i386__)
+#if defined(__i386__) || defined(__x86_64__)
 void proctab_dmp(void)
 {
 /* Proc table dump */
@@ -343,7 +343,7 @@ void proctab_dmp(void)
 	printf("\n");
   }
 }
-#endif				/* defined(__i386__) */
+#endif				/* defined(__i386__) || defined(__x86_64__) */
 
 #if defined(__arm__)
 void proctab_dmp(void)

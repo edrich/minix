@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <limits.h>
 #include <string.h>
+#include <stdint.h>
 #include <sys/ioctl.h>
 #include <sys/mtio.h>
 #include <minix/partition.h>
@@ -273,7 +274,7 @@ int fd;
 		exit(1);
 	}
   } else {
-	if (mtget.mt_blksiz > SSIZE_MAX) {
+	if ((intmax_t) mtget.mt_blksiz > (intmax_t) SSIZE_MAX) {
 		fprintf(stderr,
 		"vol: %s: tape block size (%lu) is too large to handle\n",
 			name, (unsigned long) mtget.mt_blksiz);
