@@ -29,13 +29,19 @@ TCG) from that disk to a multiuser login on serial, and passes 111 of the
 minix-posix suite on amd64 (QEMU/KVM, 256MB): **111 passed, 2 failed**.
 
 * `isofs` also fails on i386 (baseline).
-* `test101` runs out of memory ("anon_pagefault: out of memory"): not yet
-  investigated; likely the larger 64-bit footprint in 256MB.
+* `test101` (a 160MB calloc() that must not touch its pages) runs out of
+  memory, but only after the whole suite has run: it passes on a fresh boot
+  and after tests 66-100 alone.  After the full suite, /proc/meminfo shows
+  25301 free pages (~99MB) and 21563 pages (~84MB) in VM's page cache; VM
+  itself is 41MB resident and an MFS instance 20MB.  Two leads, unverified:
+  calloc() may be touching all its pages on amd64 (the fault is in libc,
+  and a fresh boot has enough memory to hide that), and/or VM does not
+  reclaim its page cache before failing an anonymous page fault.  The SysV
+  IPC tables were empty.
 * test64's out-of-memory messages are expected, as on i386.
 
-The last full i386 run (112 passed, only `isofs` failed) predates the most
-recent shared changes (u64 helpers, VFS worker stacks, libfsdriver peek,
-test66); rerun it before relying on them.
+i386 with all of the branch's changes (2026-11-26): 112 passed, only
+`isofs` failed (baseline).
 
 ## Build and test
 
