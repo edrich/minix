@@ -117,12 +117,10 @@ _NOWERROR=	${defined(NOGCCERROR) || (${ACTIVE_CC} == "clang" && defined(NOCLANGE
 _NOWERROR=	yes
 .endif # defined(__MINIX) && ${USE_BITCODE} == "yes"
 CFLAGS+=	${${_NOWERROR} == "no" :?-Werror:} ${CWARNFLAGS}
-.if defined(__MINIX) && ${MACHINE_ARCH} == "x86_64"
-# MINIX: much MINIX code prints 64-bit types (dev_t, ino_t, off_t, u64_t) as
-# "long long", which is what they are on the 32-bit ports. On x86_64 they
-# are "long": the same size, so the mismatch is harmless, but the compiler
-# warns about it. Keep the warning, but do not make it fatal.
-CFLAGS+=	-Wno-error=format
+.if defined(__MINIX) && ${MINIX_LP64_AUDIT:Uno} == "yes" && ${ACTIVE_CC} == "clang"
+# MINIX: report (without failing) implicit 64-to-32-bit truncations, to audit
+# code for LP64 problems: build with -V MINIX_LP64_AUDIT=yes and grep the log.
+CFLAGS+=	-Wshorten-64-to-32 -Wno-error=shorten-64-to-32
 .endif
 LINTFLAGS+=	${DESTDIR:D-d ${DESTDIR}/usr/include}
 

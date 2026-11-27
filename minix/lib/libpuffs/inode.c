@@ -77,7 +77,7 @@ int fs_putnode(ino_t ino_nr, unsigned int count)
 				ino,
 				pn_cur->pn_count,
 				(char *)pn_cur->pn_po.po_path,
-				pn_cur->pn_po.po_len,
+				(unsigned int)pn_cur->pn_po.po_len,
 				pn_cur->pn_po.po_hash);
 		}
 		pn_cur = pn_next;

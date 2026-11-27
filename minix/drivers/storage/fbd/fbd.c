@@ -289,7 +289,7 @@ static ssize_t fbd_transfer_copy(int do_write, u64_t position,
 	assert(count > 0 && count <= SCPVEC_NR);
 
 	if (size > BUF_SIZE) {
-		printf("FBD: allocating memory for %d bytes\n", size);
+		printf("FBD: allocating memory for %d bytes\n", (int)size);
 
 		ptr = alloc_contig(size, 0, NULL);
 

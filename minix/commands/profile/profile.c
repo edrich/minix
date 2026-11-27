@@ -373,9 +373,9 @@ int write_outfile()
   printf("Writing to %s ...", outfile);
 
   /* Write header. */
-  sprintf(header, "stat\n%u %u %u\n",	sizeof(struct sprof_info_s),
-					sizeof(struct sprof_sample),
-					sizeof(struct sprof_proc));
+  sprintf(header, "stat\n%u %u %u\n",	(unsigned int)sizeof(struct sprof_info_s),
+					(unsigned int)sizeof(struct sprof_sample),
+					(unsigned int)sizeof(struct sprof_proc));
 
   n = write(outfile_fd, header, strlen(header));
 
@@ -387,7 +387,7 @@ int write_outfile()
   written = write_outfile_sprof();
   if (written < 0) return -1;
 
-  printf(" header %d bytes, data %d bytes.\n", strlen(header), written);
+  printf(" header %d bytes, data %d bytes.\n", (int)strlen(header), written);
   return 0;
 }
 

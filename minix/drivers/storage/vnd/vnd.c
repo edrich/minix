@@ -272,7 +272,7 @@ vnd_transfer(devminor_t minor, int do_write, u64_t position,
 
 		/* Copy the data for this chunk from or to the caller. */
 		if ((r = vnd_copy(iov, iov_off, chunk, endpt, do_write)) < 0) {
-			printf("VND%u: data copy failed (%d)\n", instance, r);
+			printf("VND%u: data copy failed (%d)\n", instance, (int)r);
 			return r;
 		}
 
@@ -285,7 +285,7 @@ vnd_transfer(devminor_t minor, int do_write, u64_t position,
 				if (r < 0)
 					r = -errno;
 				printf("VND%u: pwrite failed (%d)\n", instance,
-				    r);
+				    (int)r);
 				return (r < 0) ? r : EIO;
 			}
 		}

@@ -1113,7 +1113,7 @@ alloc_inode(int mode, int usrid, int grpid)
 
   num = next_inode++;
   if (num > nrinodes) {
-  	pexit("File system does not have enough inodes (only %llu)", nrinodes);
+  	pexit("File system does not have enough inodes (only %llu)", (unsigned long long)nrinodes);
   }
   b = ((num - 1) / inodes_per_block) + inode_offset;
   off = (num - 1) % inodes_per_block;
@@ -1125,7 +1125,7 @@ alloc_inode(int mode, int usrid, int grpid)
   get_block(b, inodes);
   if (inodes[off].i_mode) {
 	pexit("allocation new inode %llu with non-zero mode - this cannot happen",
-		num);
+		(unsigned long long)num);
   }
   inodes[off].i_mode = mode;
   inodes[off].i_uid = usrid;

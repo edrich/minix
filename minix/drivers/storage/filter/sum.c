@@ -351,7 +351,7 @@ static int check_write(u64_t pos, size_t size)
 	if (memcmp(ext_buffer, rb0_buffer, size)) {
 #if DEBUG
 		printf("Filter: readback from disk 0 failed (size %d)\n",
-			size);
+			(int)size);
 #endif
 
 		return bad_driver(DRIVER_MAIN, BD_DATA, EFAULT);
@@ -360,7 +360,7 @@ static int check_write(u64_t pos, size_t size)
 	if (USE_MIRROR && memcmp(ext_buffer, rb1_buffer, size)) {
 #if DEBUG
 		printf("Filter: readback from disk 1 failed (size %d)\n",
-			size);
+			(int)size);
 #endif
 
 		return bad_driver(DRIVER_BACKUP, BD_DATA, EFAULT);
