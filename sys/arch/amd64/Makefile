@@ -41,7 +41,9 @@ links:
 .endif # !defined(__MINIX)
 
 .if defined(__MINIX)
-SUBDIR=	include ../x86/include
+# The 32-bit i386 boot code also boots the amd64 kernel (a Multiboot ELF32
+# container); its Makefiles build it with -m32 on x86_64.
+SUBDIR=	include ../x86/include ../i386/stand
 .else
 SUBDIR=	compile include ../x86/include ../xen/include \
 	../i386/include ../i386/stand

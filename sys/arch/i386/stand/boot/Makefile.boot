@@ -107,18 +107,22 @@ SAMISCMAKEFLAGS+="SA_ENABLE_LS_OP=yes"
 .include "${S}/lib/libsa/Makefile.inc"
 LIBSA= ${SALIB}
 
-.if !defined(__MINIX)
+.if !defined(__MINIX) || ${MACHINE_ARCH} == "x86_64"
+# MINIX: on x86_64 libminc is 64-bit code; use the minimal i386 libkern.
 ### find out what to use for libkern
 KERN_AS= library
 .include "${S}/lib/libkern/Makefile.inc"
 LIBKERN= ${KERNLIB}
-.else
+.endif
+.if defined(__MINIX)
 
 USE_BITCODE=no
 
+.if ${MACHINE_ARCH} != "x86_64"
 # use MINIX minc
 LIBKERN= ${DESTDIR}/usr/lib/libminc.a
-.endif # !defined(__MINIX)
+.endif
+.endif # defined(__MINIX)
 
 ### find out what to use for libz
 Z_AS= library

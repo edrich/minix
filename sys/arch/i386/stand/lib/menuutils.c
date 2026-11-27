@@ -179,7 +179,11 @@ void
 prompt(int allowreturn)
 #endif /* defined(__minix) */
 {
+#if !defined(__minix)
 	char input[80];
+#else
+	char input[256];	/* as in the menu editor: room for kernel args */
+#endif /* !defined(__minix) */
 
 	for (;;) {
 		char *c = input;

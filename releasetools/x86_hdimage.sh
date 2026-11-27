@@ -132,8 +132,8 @@ if [ -f ${DESTDIR}/usr/mdec/bootxx_minixfs3 ]
 then
 	${CROSS_TOOLS}/nbinstallboot -f -m ${ARCH} ${IMG} ${DESTDIR}/usr/mdec/bootxx_minixfs3
 else
-	# amd64 has no boot loader of its own yet: boot the image with QEMU's
-	# -kernel/-initrd (see releasetools/x86_qemu.py --arch amd64).
+	# a build without the boot code (sys/arch/i386/stand): boot the image
+	# with QEMU's -kernel/-initrd (see releasetools/x86_qemu.py).
 	echo "No boot block for ${ARCH}; the image is not bootable by itself."
 fi
 
