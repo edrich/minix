@@ -1328,8 +1328,28 @@ complete_bars(void)
 		panic("can't get kinfo");
 
 	/* Set memgap_low to just above physical memory */
-	memgap_low= kinfo.mem_high_phys;
 	memgap_high= 0xfe000000;	/* Leave space for the CPU (APIC) */
+	if (kinfo.mem_high_phys <= memgap_high)
+		memgap_low= kinfo.mem_high_phys;
+	else
+	{
+		/* Memory continues above 4GB: 32-bit BARs go above the
+		 * memory below 4GB.
+		 */
+		memgap_low= 0;
+		for (i= 0; i<kinfo.mmap_size; i++)
+		{
+			phys_bytes start= kinfo.memmap[i].mm_base_addr;
+			phys_bytes end= start + kinfo.memmap[i].mm_length;
+
+			if (start >= memgap_high)
+				continue;
+			if (end > memgap_high)
+				end= memgap_high;
+			if (end > memgap_low)
+				memgap_low= end;
+		}
+	}
 
 	if (debug)
 	{

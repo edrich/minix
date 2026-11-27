@@ -91,6 +91,7 @@ static u8_t *tmp_buf;
 
 static char *dma_buf;
 static phys_bytes dma_buf_phys;
+static int dma_bounce;	/* the DMA set up last goes through dma_buf */
 
 #define N_PRDTE	1024	/* Should be enough for large requests */
 
@@ -123,7 +124,13 @@ static ssize_t w_transfer(devminor_t minor, int do_write, u64_t position,
 static int com_out(struct command *cmd);
 static int com_out_ext(struct command *cmd);
 static int setup_dma(unsigned *sizep, endpoint_t proc_nr, iovec_t *iov,
-	size_t addr_offset, int do_write);
+	size_t addr_offset, int do_write, int allow_bounce);
+#ifdef _LP64
+static void bounce_copy(endpoint_t proc_nr, iovec_t *iov, size_t addr_offset,
+	unsigned bytes, int to_dma_buf);
+static int setup_dma_bounce(unsigned *sizep, endpoint_t proc_nr,
+	iovec_t *iov, size_t addr_offset, int do_write);
+#endif
 static void w_need_reset(void);
 static int w_do_close(devminor_t minor);
 static int w_ioctl(devminor_t minor, unsigned long request, endpoint_t endpt,
@@ -1052,7 +1059,8 @@ static ssize_t w_transfer(
 
 	if (do_dma) {
 		stop_dma(wn);
-		if (!setup_dma(&nbytes, proc_nr, iov, addr_offset, do_write)) {
+		if (!setup_dma(&nbytes, proc_nr, iov, addr_offset, do_write,
+		    TRUE /*allow_bounce*/)) {
 			do_dma = 0;
 		}
 #if 0
@@ -1105,6 +1113,11 @@ static ssize_t w_transfer(
 		}
 
 		stop_dma(wn);
+
+#ifdef _LP64
+		if (dma_bounce && !do_write)
+			bounce_copy(proc_nr, iov, addr_offset, nbytes, FALSE);
+#endif
 
 		dma_buf_offset= 0;
 		while (r == OK && nbytes > 0)
@@ -1316,6 +1329,89 @@ struct command *cmd;		/* Command block */
 
   return(OK);
 }
+#ifdef _LP64
+/*===========================================================================*
+ *				bounce_copy				     *
+ *===========================================================================*/
+static void bounce_copy(endpoint_t proc_nr, iovec_t *iov, size_t addr_offset,
+	unsigned bytes, int to_dma_buf)
+{
+/* Copy 'bytes' bytes between the I/O vector, starting 'addr_offset' bytes into
+ * its first element, and the start of dma_buf.
+ */
+	unsigned pos, chunk;
+	int r;
+
+	for (pos = 0; pos < bytes; iov++, addr_offset = 0) {
+		chunk = iov->iov_size;
+		if (chunk > bytes - pos)
+			chunk = bytes - pos;
+		if (proc_nr != SELF) {
+			if (to_dma_buf)
+				r = sys_safecopyfrom(proc_nr,
+				    (cp_grant_id_t) iov->iov_addr, addr_offset,
+				    (vir_bytes) dma_buf + pos, chunk);
+			else
+				r = sys_safecopyto(proc_nr,
+				    (cp_grant_id_t) iov->iov_addr, addr_offset,
+				    (vir_bytes) dma_buf + pos, chunk);
+			if (r != OK)
+				panic("bounce_copy: safecopy failed: %d", r);
+		} else if (to_dma_buf)
+			memcpy(dma_buf + pos,
+			    (char *) iov->iov_addr + addr_offset, chunk);
+		else
+			memcpy((char *) iov->iov_addr + addr_offset,
+			    dma_buf + pos, chunk);
+		pos += chunk;
+	}
+}
+
+/*===========================================================================*
+ *				setup_dma_bounce			     *
+ *===========================================================================*/
+static int setup_dma_bounce(unsigned *sizep, endpoint_t proc_nr,
+	iovec_t *iov, size_t addr_offset, int do_write)
+{
+/* Set up the PRD table for a transfer through dma_buf, of at most its size,
+ * and copy the data into it for a write.  Return the number of PRD entries.
+ */
+	phys_bytes phys;
+	unsigned size, n;
+	int j;
+
+	if (dma_buf_phys + ATA_DMA_BUF_SIZE > 0x100000000ULL)
+		return 0;	/* cannot happen: contiguous memory is below 4GB */
+
+	size = *sizep;
+	if (size > ATA_DMA_BUF_SIZE)
+		size = ATA_DMA_BUF_SIZE;
+
+	if (do_write)
+		bounce_copy(proc_nr, iov, addr_offset, size, TRUE);
+
+	for (j = 0, phys = dma_buf_phys, n = 0; n < size; j++) {
+		unsigned chunk = size - n;
+
+		/* An entry may not cross a 64K boundary. */
+		if (phys / 0x10000 != (phys + chunk - 1) / 0x10000)
+			chunk = ((phys / 0x10000) + 1) * 0x10000 - phys;
+
+		prdt[j].prdte_base = (u32_t) phys;
+		prdt[j].prdte_count = chunk;
+		prdt[j].prdte_reserved = 0;
+		prdt[j].prdte_flags = 0;
+
+		phys += chunk;
+		n += chunk;
+	}
+
+	*sizep = size;
+	dma_bounce = 1;
+	return j;
+}
+#endif /* _LP64 */
+
 /*===========================================================================*
  *				setup_dma				     *
  *===========================================================================*/
@@ -1324,7 +1420,8 @@ static int setup_dma(
   endpoint_t proc_nr,
   iovec_t *iov,
   size_t addr_offset,
-  int UNUSED(do_write)
+  int do_write,
+  int allow_bounce
 )
 {
 	phys_bytes user_phys;
@@ -1338,6 +1435,7 @@ static int setup_dma(
 	i= 0;	/* iov index */
 	j= 0;	/* prdt index */
 	offset= 0;	/* Offset in current iov */
+	dma_bounce= 0;
 
 #if VERBOSE_DMA
 	printf("at_wini: setup_dma: proc_nr %d\n", proc_nr);
@@ -1377,11 +1475,18 @@ static int setup_dma(
 		}
 
 #ifdef _LP64
-		/* PRD entries hold 32-bit addresses; use PIO for buffers
-		 * above 4GB.
+		/* PRD entries hold 32-bit addresses.  For a buffer above
+		 * 4GB, transfer through dma_buf (below 4GB) instead; falling
+		 * back to PIO for such transfers made DMA after PIO fail.
 		 */
-		if (user_phys + n > 0x100000000ULL)
-			return 0;
+		if (user_phys + n > 0x100000000ULL) {
+			if (!allow_bounce)
+				return 0;
+			if ((j = setup_dma_bounce(sizep, proc_nr, iov,
+			    addr_offset, do_write)) <= 0)
+				return 0;
+			break;
+		}
 #endif
 
 		/* vector is not allowed to cross a 64K boundary */
@@ -1857,7 +1962,8 @@ static int atapi_transfer(
 
 	if(do_dma) {
 		stop_dma(wn);
-		if (!setup_dma(&nbytes, proc_nr, iov, addr_offset, 0)) {
+		if (!setup_dma(&nbytes, proc_nr, iov, addr_offset, 0,
+		    FALSE /*allow_bounce*/)) {
 			do_dma = 0;
 		} else if(nbytes != nblocks * CD_SECTOR_SIZE) {
 			stop_dma(wn);

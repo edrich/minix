@@ -426,6 +426,17 @@ static phys_bytes alloc_pages(int pages, int memflags)
 		maxpage = boundary16 - 1;
 	else if(memflags & PAF_LOWER1MB)
 		maxpage = boundary1 - 1;
+#if defined(__x86_64__)
+	else if(memflags & PAF_CONTIG) {
+		/* Contiguous memory is what drivers give devices for DMA, and
+		 * many devices and drivers take only 32-bit addresses: keep it
+		 * below 4GB.
+		 */
+		phys_bytes boundary4g = 0x100000000ULL / VM_PAGE_SIZE;
+		if(maxpage >= boundary4g)
+			maxpage = boundary4g - 1;
+	}
+#endif
 	else {
 		/* no position restrictions: check page cache */
 		if(pages == 1) {

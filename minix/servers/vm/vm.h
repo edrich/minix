@@ -20,7 +20,7 @@
 
 /* Memory flags to pt_allocmap() and alloc_mem(). */
 #define PAF_CLEAR	0x01	/* Clear physical memory. */
-#define PAF_CONTIG	0x02	/* Physically contiguous. */
+#define PAF_CONTIG	0x02	/* Physically contiguous (for device DMA). */
 #define PAF_ALIGN64K	0x04	/* Aligned to 64k boundary. */
 #define PAF_LOWER16MB	0x08
 #define PAF_LOWER1MB	0x10

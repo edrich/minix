@@ -75,7 +75,7 @@ static int anon_contig_new(struct vir_region *region)
 
 	assert(physregions(region) == pages);
 
-	if((new_page_cl = alloc_mem(pages, allocflags)) == NO_MEM) {
+	if((new_page_cl = alloc_mem(pages, allocflags | PAF_CONTIG)) == NO_MEM) {
 		map_free(region);
 		return ENOMEM;
 	}
