@@ -74,6 +74,8 @@ void test_noexec(void);
 void test_defexec(void);
 void test_reattach_child(void);
 void test_reattach(void);
+void test_data_child(void);
+void test_data(void);
 
 static char *executable;
 static int child = 0, attach;
@@ -141,6 +143,7 @@ int a;
   if (m & 00200000) timed_test(test_noexec);
   if (m & 00400000) timed_test(test_defexec);
   if (m & 01000000) test_reattach(); /* not timed, catches SIGALRM */
+  if (m & 02000000) timed_test(test_data);
 }
   
 static jmp_buf timed_test_context;
@@ -1507,3 +1510,67 @@ void test_reattach()
   traced_wait();
 }
 
+/* Patterns with bits set in every byte, and in the upper half of a 64-bit
+ * long, so that a ptrace() that passes ints instead of longs is caught.
+ */
+#if defined(_LP64)
+#define DATA_PATTERN1	((long) 0x1234567890abcdefUL)
+#define DATA_PATTERN2	((long) 0xfedcba0987654321UL)
+#else
+#define DATA_PATTERN1	((long) 0x12345678UL)
+#define DATA_PATTERN2	((long) 0x87654321UL)
+#endif
+
+static volatile long data_word;
+
+void test_data_child()
+{
+  data_word = DATA_PATTERN1;
+
+  WRITE(0);
+
+  while (data_word == DATA_PATTERN1);
+
+  exit(data_word == DATA_PATTERN2 ? 42 : 43);
+}
+
+void test_data()
+{
+  pid_t pid;
+  int r, status;
+  long v;
+
+  subtest = 20;
+
+  pid = traced_fork(test_data_child);
+
+  if (READ() != 0) my_e(1);
+
+  if (kill(pid, SIGSTOP) != 0) my_e(2);
+
+  if (waitpid(pid, &status, 0) != pid) my_e(3);
+  if (!_WIFSTOPPED(status)) my_e(4);
+  if (WSTOPSIG(status) != SIGSTOP) my_e(5);
+
+  /* T_GETDATA and T_SETDATA transfer whole longs. */
+  errno = 0;
+  v = ptrace(T_GETDATA, pid, (void *) &data_word, 0);
+  if (errno != 0) my_e(6);
+  if (v != DATA_PATTERN1) my_e(7);
+
+  if (ptrace(T_SETDATA, pid, (void *) &data_word, DATA_PATTERN2) != 0)
+	my_e(8);
+
+  errno = 0;
+  v = ptrace(T_GETDATA, pid, (void *) &data_word, 0);
+  if (errno != 0) my_e(9);
+  if (v != DATA_PATTERN2) my_e(10);
+
+  if (ptrace(T_RESUME, pid, 0, 0) != 0) my_e(11);
+
+  if (waitpid(pid, &status, 0) != pid) my_e(12);
+  if (!_WIFEXITED(status)) my_e(13);
+  if ((r = WEXITSTATUS(status)) != 42) my_e(r);
+
+  traced_wait();
+}

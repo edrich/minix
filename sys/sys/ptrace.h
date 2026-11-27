@@ -199,7 +199,13 @@ int	ptrace_machdep_dorequest(struct lwp *, struct lwp *, int,
 #include <sys/cdefs.h>
 
 __BEGIN_DECLS
+#if defined(__minix)
+/* MINIX: T_GETDATA, T_GETUSER etc. transfer longs (64-bit on LP64 ports);
+   on ILP32 ports this is the same ABI as the int version. */
+long	ptrace(int _request, pid_t _pid, void *_addr, long _data);
+#else
 int	ptrace(int _request, pid_t _pid, void *_addr, int _data);
+#endif /* defined(__minix) */
 __END_DECLS
 
 #endif /* !_KERNEL */
