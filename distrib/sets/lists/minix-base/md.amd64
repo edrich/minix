@@ -5,15 +5,27 @@
 # ../../../../releasetools/sort_set.pl < mi > out
 # mv out mi
 #
+./etc/system.conf.d/bochs                               minix-base
+./etc/system.conf.d/dp8390                              minix-base
+./etc/system.conf.d/e1000                               minix-base
+./etc/system.conf.d/lance                               minix-base
+./etc/system.conf.d/rtl8139                             minix-base
+./etc/system.conf.d/virtio_net                          minix-base
 ./service/ahci                                          minix-base
 ./service/at_wini                                       minix-base
+./service/bochs                                         minix-base
+./service/dp8390                                        minix-base
+./service/e1000                                         minix-base
 ./service/fbd                                           minix-base
 ./service/filter                                        minix-base
 ./service/floppy                                        minix-base
+./service/lance                                         minix-base
 ./service/pci                                           minix-base
 ./service/pckbd                                         minix-base
 ./service/random                                        minix-base
+./service/rtl8139                                       minix-base
 ./service/virtio_blk                                    minix-base
+./service/virtio_net                                    minix-base
 ./usr/lib/libacpi.a                                     minix-base
 ./usr/lib/libacpi_pic.a                                 minix-base
 ./usr/lib/libvirtio.a                                   minix-base

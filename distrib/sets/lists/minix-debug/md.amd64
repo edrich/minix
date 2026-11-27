@@ -5,6 +5,12 @@
 # ../../../../releasetools/sort_set.pl < mi > out
 # mv out mi
 #
+./usr/libdata/debug/service/bochs.debug                 minix-debug     debug
+./usr/libdata/debug/service/dp8390.debug                minix-debug     debug
+./usr/libdata/debug/service/e1000.debug                 minix-debug     debug
+./usr/libdata/debug/service/lance.debug                 minix-debug     debug
+./usr/libdata/debug/service/rtl8139.debug               minix-debug     debug
+./usr/libdata/debug/service/virtio_net.debug            minix-debug     debug
 ./usr/libdata/debug/usr/tests/minix-posix/test47.debug  minix-debug     debug
 ./usr/libdata/debug/usr/tests/minix-posix/test51.debug  minix-debug     debug
 ./usr/libdata/debug/usr/tests/minix-posix/test57.debug  minix-debug     debug
