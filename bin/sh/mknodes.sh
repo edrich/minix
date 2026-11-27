@@ -113,6 +113,9 @@ echo
 echo
 echo "union node *copyfunc(union node *);"
 echo "void freefunc(union node *);"
+echo "#ifdef __minix"
+echo "void reffunc(union node *);"
+echo "#endif"
 
 mv $objdir/nodes.h.tmp $objdir/nodes.h || exit 1
 

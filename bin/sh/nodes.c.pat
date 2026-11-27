@@ -66,15 +66,38 @@ STATIC char *nodesavestr(char *);
  * Make a copy of a parse tree.
  */
 
+#ifdef __minix
+/*
+ * MINIX: function definitions are reference counted, so that a function
+ * that is redefined or unset while it runs is not freed under the running
+ * body (in NetBSD since 2017).  The count precedes the copied tree, whose
+ * root node is the first node in the block.
+ */
+struct funchdr {
+	long	count;		/* long: keeps the nodes pointer-aligned */
+};
+#define FUNCHDR(n)	((struct funchdr *)(void *)(n) - 1)
+#endif /* __minix */
+
 union node *
 copyfunc(union node *n)
 {
+#ifdef __minix
+	struct funchdr *h;
+#endif /* __minix */
+
 	if (n == NULL)
 		return NULL;
 	funcblocksize = 0;
 	funcstringsize = 0;
 	calcsize(n);
+#ifdef __minix
+	h = ckmalloc(sizeof(*h) + funcblocksize + funcstringsize);
+	h->count = 1;
+	funcblock = h + 1;
+#else
 	funcblock = ckmalloc(funcblocksize + funcstringsize);
+#endif /* __minix */
 	funcstring = (char *) funcblock + funcblocksize;
 	return copynode(n);
 }
@@ -154,6 +177,23 @@ nodesavestr(char *s)
 void
 freefunc(union node *n)
 {
+#ifdef __minix
+	if (n && --FUNCHDR(n)->count == 0)
+		ckfree(FUNCHDR(n));
+#else
 	if (n)
 		ckfree(n);
+#endif /* __minix */
 }
+
+#ifdef __minix
+/*
+ * Take a reference to a function definition, released with freefunc().
+ */
+void
+reffunc(union node *n)
+{
+	if (n)
+		FUNCHDR(n)->count++;
+}
+#endif /* __minix */

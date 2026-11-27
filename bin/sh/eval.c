@@ -710,6 +710,9 @@ evalcommand(union node *cmd, int flgs, struct backcmd *backcmd)
 	struct job * volatile jp;
 	struct jmploc jmploc;
 	struct jmploc *volatile savehandler = NULL;
+#ifdef __minix
+	union node *volatile savefunc = NULL;	/* function body held */
+#endif /* __minix */
 	const char *volatile savecmdname;
 	volatile struct shparam saveparam;
 	struct localvar *volatile savelocalvars;
@@ -961,6 +964,12 @@ normal_fork:
 			}
 			poplocalvars();
 			localvars = savelocalvars;
+#ifdef __minix
+			if (savefunc != NULL) {
+				freefunc(savefunc);
+				savefunc = NULL;
+			}
+#endif /* __minix */
 			handler = savehandler;
 			longjmp(handler->loc, 1);
 		}
@@ -970,9 +979,20 @@ normal_fork:
 		/* stop shell blowing its stack */
 		if (++funcnest > 1000)
 			error("too many nested function calls");
+#ifdef __minix
+		/* The body may redefine or unset the function: hold it. */
+		INTOFF;
+		reffunc(cmdentry.u.func);
+		savefunc = cmdentry.u.func;
+		INTON;
+#endif /* __minix */
 		evaltree(cmdentry.u.func, flags & EV_TESTED);
 		funcnest--;
 		INTOFF;
+#ifdef __minix
+		freefunc(savefunc);
+		savefunc = NULL;
+#endif /* __minix */
 		poplocalvars();
 		localvars = savelocalvars;
 		freeparam(&shellparam);
