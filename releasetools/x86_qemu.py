@@ -31,6 +31,7 @@
 #                     command's exit status is checked
 #   --expect TEXT     literal text that must appear in guest output (repeatable)
 #   --timeout SEC     overall timeout        (default: 240)
+#   --mem MB          guest memory           (default: 256)
 #   --screendump PPM  take a VGA screendump after the gate, before poweroff
 #   --log FILE        serial log destination (default: x86_qemu.log)
 #   --persist         write guest changes to the image itself; by default
@@ -169,7 +170,7 @@ class QemuMinix:
         cmd = [
             ARCHES[a.arch][0],
             "-machine", "pc",
-            "-m", "256",
+            "-m", str(a.mem),
             "-vga", "std",
             "-display", "none",
             "-no-reboot",
@@ -198,7 +199,7 @@ class QemuMinix:
             # detection in /usr/etc/rc); the interface still needs
             # configuring, e.g. `dhcpcd -qM -4 em0` (see netconf(8)).
             cmd += ["-netdev", "user,id=net0",
-                    "-device", "e1000,netdev=net0"]
+                    "-device", f"{a.nic},netdev=net0"]
         accel = "kvm" if os.access("/dev/kvm", os.R_OK | os.W_OK) else "tcg"
         cmd += ["-accel", accel]
 
@@ -571,6 +572,8 @@ def main():
     ap.add_argument("--cmd", action="append", default=[])
     ap.add_argument("--expect", action="append", default=[])
     ap.add_argument("--timeout", type=int, default=240)
+    ap.add_argument("--mem", type=int, default=256,
+                    help="guest memory in MB (default 256)")
     ap.add_argument("--screendump")
     ap.add_argument("--log", default="x86_qemu.log")
     ap.add_argument("--keep", action="store_true")
@@ -580,7 +583,10 @@ def main():
     ap.add_argument("--raw", action="store_true",
                     help="run --cmd directly on the login shell; no test disk")
     ap.add_argument("--net", action="store_true",
-                    help="attach an e1000 NIC on QEMU user-mode networking")
+                    help="attach a NIC on QEMU user-mode networking")
+    ap.add_argument("--nic", default="e1000",
+                    help="QEMU NIC model for --net (default e1000; also "
+                         "virtio-net-pci, rtl8139, pcnet, ne2k_pci, i82557b)")
     ap.add_argument("--persist", action="store_true",
                     help="write guest changes to the image (default: snapshot)")
     args = ap.parse_args()
