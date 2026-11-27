@@ -352,7 +352,7 @@ int dupvm(struct fproc *rfp, int pfd, int *vmfd, struct filp **newfilp)
 
 	if (!S_ISREG(f->filp_vno->v_mode) && !S_ISBLK(f->filp_vno->v_mode)) {
 		printf("VFS: mmap regular/blockdev only; dev 0x%llx ino %llu has mode 0%o\n",
-			f->filp_vno->v_dev, f->filp_vno->v_inode_nr, f->filp_vno->v_mode);
+			(unsigned long long)f->filp_vno->v_dev, (unsigned long long)f->filp_vno->v_inode_nr, f->filp_vno->v_mode);
 		unlock_filp(f);
 		return EINVAL;
 	}
@@ -379,7 +379,7 @@ int dupvm(struct fproc *rfp, int pfd, int *vmfd, struct filp **newfilp)
  *				vm_cdev_lookup				     *
  *===========================================================================*/
 static int vm_cdev_lookup(struct fproc *rfp, int fd, u64_t offset,
-	u32_t length, int *result)
+	vir_bytes length, int *result)
 {
 /* FDLOOKUP for an mmap() of a character device: instead of duplicating the
  * fd for VM (character devices have no page cache), ask the driver which
@@ -439,7 +439,7 @@ int do_vm_call(void)
 	u32_t req_id = job_m_in.VFS_VMCALL_REQID;
 	endpoint_t ep = job_m_in.VFS_VMCALL_ENDPOINT;
 	u64_t offset = job_m_in.VFS_VMCALL_OFFSET;
-	u32_t length = job_m_in.VFS_VMCALL_LENGTH;
+	vir_bytes length = job_m_in.VFS_VMCALL_LENGTH;
 	int result = OK;
 	int slot;
 	struct fproc *rfp;

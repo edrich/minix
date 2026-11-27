@@ -460,7 +460,8 @@ static ssize_t f_transfer(
   vir_bytes user_offset, iov_offset = 0, iop_offset;
   unsigned long position;
   signed long uoffsets[MAX_SECTORS], *up;
-  cp_grant_id_t ugrants[MAX_SECTORS], *ug = NULL;
+  /* Grant IDs, or for requests from SELF addresses: the iov_addr values. */
+  vir_bytes ugrants[MAX_SECTORS], *ug = NULL;
   u8_t cmd[3];
   ssize_t total;
 
@@ -611,7 +612,7 @@ static ssize_t f_transfer(
 			if (do_write) {
 				/* Copy the user bytes to the DMA buffer. */
 				if(proc_nr != SELF) {
-				   s=sys_safecopyfrom(proc_nr, *ug, *up,
+				   s=sys_safecopyfrom(proc_nr, (cp_grant_id_t) *ug, *up,
 					(vir_bytes) floppy_buf,
 					 (phys_bytes) SECTOR_SIZE);
 				   if(s != OK)
@@ -637,7 +638,7 @@ static ssize_t f_transfer(
 		if (r == OK && !do_write) {
 			/* Copy the DMA buffer to user space. */
 			if(proc_nr != SELF) {
-		   	   s=sys_safecopyto(proc_nr, *ug, *up,
+		   	   s=sys_safecopyto(proc_nr, (cp_grant_id_t) *ug, *up,
 				(vir_bytes) floppy_buf,
 			  	 (phys_bytes) SECTOR_SIZE);
 			if(s != OK)

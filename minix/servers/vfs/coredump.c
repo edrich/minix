@@ -12,7 +12,7 @@
 static void fill_elf_header(Elf_Ehdr *elf_header, int phnum);
 static void fill_prog_header(Elf_Phdr *prog_header, Elf_Word
 	p_type, Elf_Off p_offset, Elf_Addr p_vaddr, Elf_Word p_flags,
-	Elf_Word p_filesz, Elf_Word p_memsz);
+	vir_bytes p_filesz, vir_bytes p_memsz);
 static int get_memory_regions(Elf_Phdr phdrs[]);
 static void fill_note_segment_and_entries_hdrs(Elf_Phdr phdrs[],
 	Elf_Nhdr nhdrs[]);
@@ -103,7 +103,7 @@ static void fill_elf_header (Elf_Ehdr *elf_header, int phnum)
  *===========================================================================*/
 static void fill_prog_header (Elf_Phdr *prog_header, Elf_Word p_type,
 	Elf_Off p_offset, Elf_Addr p_vaddr, Elf_Word p_flags,
-	Elf_Word p_filesz, Elf_Word p_memsz)
+	vir_bytes p_filesz, vir_bytes p_memsz)
 {
 
   memset((void *) prog_header, 0, sizeof(Elf_Phdr));

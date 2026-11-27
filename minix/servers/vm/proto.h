@@ -246,7 +246,7 @@ void clear_cache_bydev(dev_t dev);
 
 /* vfs.c */
 int vfs_request(int reqno, int fd, struct vmproc *vmp, u64_t offset,
-	u32_t len, vfs_callback_t reply_callback, void *cbarg, void *state,
+	vir_bytes len, vfs_callback_t reply_callback, void *cbarg, void *state,
 	int statelen);
 int do_vfs_reply(message *m);
 

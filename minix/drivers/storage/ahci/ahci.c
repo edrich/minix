@@ -391,7 +391,7 @@ static int atapi_read_capacity(struct port_state *ps, int cmd)
 	dprintf(V_INFO,
 		("%s: medium detected (%u byte sectors, %llu MB size)\n",
 		ahci_portname(ps), ps->sector_size,
-		ps->lba_count * ps->sector_size / (1024*1024)));
+		(unsigned long long)ps->lba_count * ps->sector_size / (1024*1024)));
 
 	return OK;
 }
@@ -832,8 +832,8 @@ static void ct_set_prdt(u8_t *ct, prd_t *prdt, int nr_prds)
 	p = (u32_t *) &ct[AHCI_CT_PRDT_OFF];
 
 	for (i = 0; i < nr_prds; i++, prdt++) {
-		*p++ = prdt->vp_addr;
-		*p++ = 0;
+		*p++ = ex64lo(prdt->vp_addr);
+		*p++ = ex64hi(prdt->vp_addr);	/* 0 below 4GB, or on 32-bit */
 		*p++ = 0;
 		*p++ = prdt->vp_size - 1;
 	}
@@ -891,7 +891,8 @@ static void port_set_cmd(struct port_state *ps, int cmd, cmd_fis_t *fis,
 		(write ? AHCI_CL_WRITE : 0) |
 		((packet != NULL) ? AHCI_CL_ATAPI : 0) |
 		((size / sizeof(u32_t)) << AHCI_CL_CFL_SHIFT);
-	cl[2] = ps->ct_phys[cmd];
+	cl[2] = ex64lo(ps->ct_phys[cmd]);
+	cl[3] = ex64hi(ps->ct_phys[cmd]);
 }
 
 /*===========================================================================*
@@ -1154,7 +1155,7 @@ static ssize_t port_transfer(struct port_state *ps, u64_t pos, u64_t eof,
 		return r;
 
 	dprintf(V_REQ, ("%s: %s for %lu bytes at pos %llx\n",
-		ahci_portname(ps), write ? "write" : "read", size, pos));
+		ahci_portname(ps), write ? "write" : "read", size, (unsigned long long)pos));
 
 	assert(ps->state == STATE_GOOD_DEV);
 	assert(ps->flags & FLAG_HAS_MEDIUM);
@@ -1427,7 +1428,7 @@ static void port_id_check(struct port_state *ps, int success)
 		if (ps->flags & FLAG_HAS_MEDIUM)
 			printf(", %u byte sectors, %llu MB size",
 				ps->sector_size,
-				ps->lba_count * ps->sector_size / (1024*1024));
+				(unsigned long long)ps->lba_count * ps->sector_size / (1024*1024));
 
 		printf("\n");
 	}
@@ -1929,11 +1930,11 @@ static void port_alloc(struct port_state *ps)
 	}
 
 	/* Tell the controller about some of the physical addresses. */
-	port_write(ps, AHCI_PORT_FBU, 0);
-	port_write(ps, AHCI_PORT_FB, ps->fis_phys);
+	port_write(ps, AHCI_PORT_FBU, ex64hi(ps->fis_phys));
+	port_write(ps, AHCI_PORT_FB, ex64lo(ps->fis_phys));
 
-	port_write(ps, AHCI_PORT_CLBU, 0);
-	port_write(ps, AHCI_PORT_CLB, ps->cl_phys);
+	port_write(ps, AHCI_PORT_CLBU, ex64hi(ps->cl_phys));
+	port_write(ps, AHCI_PORT_CLB, ex64lo(ps->cl_phys));
 
 	/* Enable FIS receive. */
 	cmd = port_read(ps, AHCI_PORT_CMD);
