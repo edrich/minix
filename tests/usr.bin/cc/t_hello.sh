@@ -97,6 +97,10 @@ hello32_body() {
 	if ! cc -dM -E - < /dev/null | fgrep -q _LP64; then
 		atf_skip "this is not a 64 bit architecture"
 	fi
+	# MINIX: 64-bit ports have no 32-bit (compat) libraries to link with.
+	if [ ! -d /usr/lib/i386 ]; then
+		atf_skip "no 32-bit libraries installed"
+	fi
 	if ! cc -m32 -dM -E - < /dev/null 2>/dev/null > ./def32; then
 		atf_skip "cc -m32 not supported on this architecture"
 	else
