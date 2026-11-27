@@ -53,3 +53,5 @@ lib/libc/compat__*
 .idea/
 .harness/
 minix_x86.img
+minix_amd64.img
+__pycache__
