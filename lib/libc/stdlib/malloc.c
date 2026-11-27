@@ -316,12 +316,14 @@ static void *malloc_brk;
  * calloc() support: pages above the highest break ever reached are untouched
  * and read as zero (VM fills anonymous pages on first touch).  Below it they
  * may hold old data: VM keeps the pages when the break is lowered.  map_pages()
- * records in malloc_fresh the pages it got entirely above that mark, and
- * calloc() then skips its memset() - which would otherwise force every page
- * of a large, mostly unused calloc() into memory.
+ * records in malloc_fresh the pages it just got, and in malloc_fresh_from
+ * where the untouched part of them starts; calloc() then clears only the
+ * part below that - clearing all of it would force every page of a large,
+ * mostly unused calloc() into memory.
  */
 static char *malloc_brk_max;
 static void *malloc_fresh;
+static char *malloc_fresh_from;
 #endif /* defined(__minix) */
 
 /* one location cache for free-list holders */
@@ -414,7 +416,8 @@ map_pages(size_t pages)
     tail = rresult + (size_t)bytes;
 
 #if defined(MALLOC_FRESH_PAGES)
-    malloc_fresh = (rresult >= malloc_brk_max) ? rresult : NULL;
+    malloc_fresh = rresult;
+    malloc_fresh_from = (rresult >= malloc_brk_max) ? rresult : malloc_brk_max;
 #endif /* defined(__minix) */
 
     last_idx = ptr2idx(tail) - 1;
@@ -1325,9 +1328,15 @@ calloc(size_t num, size_t size)
     ret = pubrealloc(NULL, num * size, " in calloc():");
 
 #if defined(MALLOC_FRESH_PAGES)
-    /* Fresh pages from map_pages() are zero already (see malloc_fresh). */
-    if (ret != NULL && ret == malloc_fresh && !malloc_junk)
+    /* Pages from map_pages() above the old break high-water mark are zero
+     * already (see malloc_fresh); clear only what lies below it.
+     */
+    if (ret != NULL && ret == malloc_fresh && !malloc_junk) {
+	size_t dirty = (size_t)(malloc_fresh_from - (char *)ret);
+
+	memset(ret, 0, (dirty < num * size) ? dirty : num * size);
 	return ret;
+    }
 #endif /* defined(__minix) */
     if (ret != NULL)
 	memset(ret, 0, num * size);
