@@ -40,6 +40,12 @@ the i386 baseline.  test64's out-of-memory messages and the VND diagnostics
 are expected, as on i386.  i386 with all of the branch's changes: 112
 passed, only `isofs` failed (baseline).
 
+NetBSD ATF tests (`cd /usr/tests && kyua test`, about an hour): 2552 of
+3023 test cases pass on both architectures, and every case that fails on
+amd64 also fails on i386 (most failures are kyua's own self-tests).  The
+comparison found a use-after-free in sh (a running function redefined by a
+sourced file), fixed, which crashed only on amd64.
+
 Networking (DHCP, ping, an HTTP download from the host) works with QEMU's
 e1000, virtio-net-pci, rtl8139, pcnet and ne2k_pci cards.
 
@@ -125,6 +131,9 @@ has not been exercised on amd64 yet:
   of a 64-bit physical address only (ahci).
 * `long` used to mean "32 bits" (`ex64lo`/`ex64hi`/`make64`, test66), and
   APIs that pass `long` values through `int` (ptrace).
+* Latent bugs that i386 survives by luck, such as use-after-free where the
+  freed memory happens not to be reused (sh functions): amd64's different
+  allocation sizes and layout expose them.
 * NetBSD x86_64 assembly calling functions that are C on MINIX without an
   ABI-aligned stack (`setjmp` -> `sigprocmask`), and compiler-generated SSE
   accesses to device memory (VGA text memory under KVM).
