@@ -19,6 +19,13 @@
 #   --image PATH      boot disk image        (default: minix_x86.img in repo root)
 #   --arch ARCH       i386 (default) or amd64: QEMU binary, objdir, image
 #   --bootdir PATH    dir with kernel + mod* (default: ../obj.docker.<arch> or ../obj.<arch> destdir .temp)
+#   --diskboot        boot through the image's own boot loader (bootxx +
+#                     boot_monitor + boot.cfg) instead of loading the kernel
+#                     and modules with QEMU's -kernel/-initrd.  SeaBIOS
+#                     mirrors the BIOS console to the serial port (fw_cfg
+#                     etc/sercon-port), so the harness picks "Drop to boot
+#                     prompt" in the menu and types the boot command
+#                     (kernel and modules from /boot/minix_default)
 #   --payload DIR     directory whose contents are put on the ext2 test disk
 #   --cmd CMD         shell command to run in the guest (repeatable); each
 #                     command's exit status is checked
@@ -135,9 +142,12 @@ class QemuMinix:
         a = self.args
         bootdir = a.bootdir
         kernel = os.path.join(bootdir, "kernel")
-        mods = sorted(f for f in os.listdir(bootdir) if f.startswith("mod"))
-        if not os.path.exists(kernel) or not mods:
-            fail(f"bootdir {bootdir} lacks kernel/mod* files")
+        if a.diskboot:
+            mods = []
+        else:
+            mods = sorted(f for f in os.listdir(bootdir) if f.startswith("mod"))
+            if not os.path.exists(kernel) or not mods:
+                fail(f"bootdir {bootdir} lacks kernel/mod* files")
         initrd = ",".join(mods)
 
         sockdir = tempfile.mkdtemp(prefix="x86_qemu-")
@@ -165,12 +175,23 @@ class QemuMinix:
             "-no-reboot",
             "-serial", f"unix:{sersock},server=on,wait=off",
             "-monitor", f"unix:{monsock},server=on,wait=off",
-            "-kernel", kernel,
-            "-initrd", initrd,
-            "-append", append,
             "-drive", f"file={a.image},format=raw,if=ide,index=0,media=disk"
                       + ("" if a.persist else ",snapshot=on"),
         ] + extra
+        if a.diskboot:
+            # SeaBIOS serial console: BIOS text output (the boot loader's
+            # menu and prompt) is copied to COM1 and COM1 input is fed to
+            # the BIOS keyboard.  The fw_cfg file holds the port, binary.
+            port = os.path.join(sockdir, "sercon-port")
+            with open(port, "wb") as f:
+                f.write((0x3f8).to_bytes(2, "little"))
+            cmd += ["-fw_cfg", f"name=etc/sercon-port,file={port}"]
+            # start paused: output before the harness connects to the
+            # serial socket is lost, and the menu appears within a second
+            cmd += ["-S"]
+            self.boot_args = append
+        else:
+            cmd += ["-kernel", kernel, "-initrd", initrd, "-append", append]
         if a.net:
             # user-mode (slirp) network: guest 10.0.2.15, gateway 10.0.2.2,
             # DNS 10.0.2.3.  The guest autostarts the e1000 driver (PCI
@@ -189,6 +210,8 @@ class QemuMinix:
         self.monsock = monsock
         self.serial = self._connect(sersock)
         self.serial.settimeout(0.5)
+        if a.diskboot:
+            self.monitor_cmd("cont", wait=0.3)
 
     def qemu_died(self):
         self.qemu.wait(timeout=2)
@@ -292,6 +315,30 @@ class QemuMinix:
 
     def send(self, text):
         self.serial.sendall(text.encode())
+
+    def boot_from_disk(self, timeout):
+        """--diskboot: drive the boot loader over the SeaBIOS serial console:
+        leave its menu for the boot prompt, then load the default kernel and
+        modules with the harness's kernel arguments."""
+        menu = re.compile(r"(\d+)\. Drop to boot prompt")
+        self.wait_re(menu.pattern, timeout, "boot menu")
+        self.wait_for("Choose an option", timeout, "boot menu prompt")
+        self.send(menu.search(self.buf).group(1))
+        self.wait_re(r"[\r\n]> ", timeout, "boot prompt")
+        # Two lines: older boot monitors read at most 79 characters a line.
+        for line in ("load_mods /boot/minix_default/mod*",
+                     "multiboot /boot/minix_default/kernel " + self.boot_args):
+            for ch in line:
+                # The BIOS console polls the UART and drops characters that
+                # arrive faster than it reads them: wait for each echo.
+                mark = len(self.buf)
+                self.send(ch)
+                end = time.time() + 2
+                while ch not in self.buf[mark:] and time.time() < end:
+                    self.pump(0.05)
+            self.send("\r")
+            if line.startswith("load_mods"):
+                self.wait_re(r"[\r\n]> ", timeout, "boot prompt after load_mods")
 
     def login(self, timeout):
         """Wait for getty's login prompt and log in as root, tolerating
@@ -430,6 +477,8 @@ class QemuMinix:
         deadline = time.time() + args.timeout
         left = lambda: max(1.0, deadline - time.time())
         try:
+            if args.diskboot:
+                self.boot_from_disk(left())
             self.login(left())
             self.send("export TERM=vt100; export PATH=/sbin:/bin:/usr/sbin:/usr/bin\r")
             time.sleep(0.5)
@@ -516,6 +565,8 @@ def main():
     ap.add_argument("--bootdir",
                     help="dir with kernel + mod* (default: the objdir's "
                          "destdir.<arch>/boot/minix/.temp)")
+    ap.add_argument("--diskboot", action="store_true",
+                    help="boot via the image's boot loader, not -kernel")
     ap.add_argument("--payload")
     ap.add_argument("--cmd", action="append", default=[])
     ap.add_argument("--expect", action="append", default=[])
