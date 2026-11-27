@@ -2,8 +2,8 @@
 
 Status as of 2026-11-25: a complete amd64 (x86_64, LP64) system builds with
 `build.sh`-style `release`, packs into a disk image, boots under QEMU (KVM or
-TCG) from that disk to a multiuser login on serial, and passes 111 of the
-113 minix-posix tests (details below).
+TCG) from that disk to a multiuser login on serial, and passes the
+minix-posix suite at the i386 baseline (details below).
 
 ## Design in brief
 
@@ -24,23 +24,19 @@ TCG) from that disk to a multiuser login on serial, and passes 111 of the
 * Userland is static by default as on i386; `ld.elf_so` works for the
   dynamically linked tests.  No TLS, as on i386.
 
-## Test results (2026-11-25)
+## Test results (2026-11-27)
 
-minix-posix suite on amd64 (QEMU/KVM, 256MB): **111 passed, 2 failed**.
+minix-posix suite on amd64 (QEMU/KVM, 256MB): **112 passed, 1 failed**
+(`isofs`, which fails on i386 too): the same as the i386 baseline.
+test64's out-of-memory messages and the VND diagnostics are expected, as on
+i386.
 
-* `isofs` also fails on i386 (baseline).
-* `test101` (a 160MB calloc() that must not touch its pages) runs out of
-  memory, but only after the whole suite has run: it passes on a fresh boot
-  and after tests 66-100 alone.  After the full suite, /proc/meminfo shows
-  25301 free pages (~99MB) and 21563 pages (~84MB) in VM's page cache; VM
-  itself is 41MB resident and an MFS instance 20MB.  Two leads, unverified:
-  calloc() may be touching all its pages on amd64 (the fault is in libc,
-  and a fresh boot has enough memory to hide that), and/or VM does not
-  reclaim its page cache before failing an anonymous page fault.  The SysV
-  IPC tables were empty.
-* test64's out-of-memory messages are expected, as on i386.
+test101 used to fail late in the suite: calloc() zeroed all of a large
+allocation whenever it started below the heap's old high-water mark, and
+the 64-bit system leaves less of the 256MB free.  calloc() now clears only
+the reused part.
 
-i386 with all of the branch's changes (2026-11-26): 112 passed, only
+i386 with all of the branch's changes (2026-11-27): 112 passed, only
 `isofs` failed (baseline).
 
 ## Build and test
