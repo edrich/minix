@@ -111,8 +111,15 @@ test94_fill_random(int fd, uint8_t * buf, size_t size)
 	ssize_t left;
 	uint32_t seq;
 
-	hdrlen = BPF_WORDALIGN(BPF_WORDALIGN(sizeof(struct bpf_hdr)) +
-	    sizeof(struct ip) + sizeof(struct udphdr));
+	/*
+	 * The same arithmetic as the capture code: each packet takes up the
+	 * aligned BPF header plus the packet, with the total aligned.  Do not
+	 * align the BPF header plus the IP and UDP headers by themselves: on
+	 * LP64 that rounds 60 bytes up to 64, so that we would think the
+	 * buffer full before it is.
+	 */
+	hdrlen = BPF_WORDALIGN(sizeof(struct bpf_hdr)) + sizeof(struct ip) +
+	    sizeof(struct udphdr);
 
 	/* Even if we fill the buffer exactly, we send one more packet. */
 	for (left = (ssize_t)size, seq = 1; left >= 0; seq++) {
