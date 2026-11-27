@@ -7742,7 +7742,12 @@ void minix::Link::ConstructJob(Compilation &C, const JobAction &JA,
     break;
   case llvm::Triple::x86:
     CmdArgs.push_back("-m");
-    CmdArgs.push_back("elf_i386_minix");
+    // -m32 on the x86_64 compiler: its linker has only the plain i386 emulation.
+    if (llvm::Triple(getToolChain().getDriver().DefaultTargetTriple).getArch() ==
+        llvm::Triple::x86_64)
+      CmdArgs.push_back("elf_i386");
+    else
+      CmdArgs.push_back("elf_i386_minix");
 #if 0 /* LSC: Not needed for MINIX but kept to ease comparison with NetBSD. */
     CmdArgs.push_back("elf_i386");
     break;

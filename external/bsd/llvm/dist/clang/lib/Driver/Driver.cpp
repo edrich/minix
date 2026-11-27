@@ -1968,7 +1968,9 @@ static llvm::Triple computeTargetTriple(StringRef DefaultTargetTriple,
   }
 
   // Skip further flag support on OSes which don't support '-m32' or '-m64'.
-  if (Target.getArchName() == "tce" || Target.getOS() == llvm::Triple::Minix)
+  // MINIX: x86_64 honours -m32 (the boot code is built as i386 code).
+  if (Target.getArchName() == "tce" || (Target.getOS() == llvm::Triple::Minix &&
+      Target.getArch() != llvm::Triple::x86_64))
     return Target;
 
   // Handle pseudo-target flags '-m64', '-mx32', '-m32' and '-m16'.
